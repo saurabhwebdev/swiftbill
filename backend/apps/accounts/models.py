@@ -77,7 +77,7 @@ class Store(models.Model):
         ('slate', 'Slate'),
     )
     appearance_theme = models.CharField(max_length=20, default='light', choices=THEME_CHOICES)
-    appearance_accent_color = models.CharField(max_length=20, default='indigo', choices=ACCENT_COLOR_CHOICES)
+    appearance_accent_color = models.CharField(max_length=20, default='indigo')
     appearance_compact_mode = models.BooleanField(default=False)
     appearance_sidebar_collapsed = models.BooleanField(default=False)
 

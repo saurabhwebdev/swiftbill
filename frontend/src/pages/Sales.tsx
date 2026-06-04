@@ -863,43 +863,39 @@ export function Sales() {
       animate="animate"
       className="max-w-[1600px]"
     >
-      <motion.div variants={item} className="mb-4">
-        <h1 className="font-display text-[22px] font-bold text-foreground tracking-tight">
-          {t('pages.sales.title')}
-        </h1>
-        <p className="text-[13px] text-muted-foreground mt-0.5">
-          {t('pages.sales.subtitle')}
-        </p>
-      </motion.div>
+      {/* Title hidden — terminal bar provides context. Maximizes selling space. */}
 
       {/* Terminal header bar */}
       {activeTerminal && (
         <motion.div
           variants={item}
-          className="mb-3 flex h-10 items-center justify-between rounded-lg border border-border/40 bg-muted/30 px-4"
+          className="mb-3 flex h-11 items-center justify-between rounded-xl bg-[hsl(var(--primary)/0.06)] border border-[hsl(var(--primary)/0.12)] px-5"
         >
-          <div className="flex items-center gap-4 text-[12px]">
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+          <div className="flex items-center gap-5 text-[12px]">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[hsl(var(--color-success))] opacity-60" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[hsl(var(--color-success))]" />
               </span>
-              <span className="font-medium text-foreground">{activeTerminal.name}</span>
+              <span className="font-semibold text-foreground">{activeTerminal.name}</span>
+              {activeTerminal.device_id && (
+                <span className="text-[10px] text-muted-foreground/50 font-mono">{activeTerminal.device_id}</span>
+              )}
             </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Banknote className="h-3 w-3" />
-              <span>Cash: {currency}{parseFloat(activeTerminal.cash_balance || '0').toFixed(2)}</span>
+            <div className="h-4 w-px bg-border/40" />
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Banknote className="h-3.5 w-3.5" />
+              <span className="font-medium">{currency}{parseFloat(activeTerminal.cash_balance || '0').toFixed(2)}</span>
             </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
+            <div className="h-4 w-px bg-border/40" />
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
               <span>{sessionDuration || '0m'}</span>
             </div>
           </div>
           <button
             onClick={handleOpenCloseDialog}
-            className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/80 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all"
           >
             <LogOut className="h-3 w-3" />
             Close Terminal
@@ -907,15 +903,15 @@ export function Sales() {
         </motion.div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr,420px] h-[calc(100vh-140px)]">
+      <div className="grid gap-3 lg:grid-cols-[1fr,400px] h-[calc(100vh-120px)]">
         {/* LEFT PANEL — Product Browser */}
         <motion.div
           variants={item}
           className="rounded-xl border border-border/60 bg-card flex flex-col overflow-hidden"
         >
-          {/* Search bar */}
-          <div className="border-b border-border/60 px-4 py-3">
-            <div className="flex gap-2">
+          {/* Search toolbar */}
+          <div className="border-b border-border/60 px-3 py-2.5">
+            <div className="flex gap-1.5">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
                 <input
@@ -924,30 +920,33 @@ export function Sales() {
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder={t('pages.sales.searchPlaceholder')}
-                  className="h-10 w-full rounded-lg border border-border/60 bg-background pl-9 pr-4 text-[14px] text-foreground outline-none transition-all placeholder:text-muted-foreground/40 focus:border-foreground/20"
+                  className="h-10 w-full rounded-lg border border-border/60 bg-background pl-9 pr-3 text-[14px] text-foreground outline-none transition-all placeholder:text-muted-foreground/40 focus:border-[hsl(var(--primary)/0.4)] focus:ring-2 focus:ring-[hsl(var(--primary)/0.08)]"
                 />
+                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-mono text-muted-foreground/30 bg-muted/40 px-1.5 py-0.5 rounded hidden sm:inline">F2</kbd>
               </div>
-              <button
-                onClick={() => setSimulateScanOpen(true)}
-                title="Simulate barcode scan"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
-              >
-                <ScanBarcode className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setCameraOpen(true)}
-                title="Scan barcode with camera"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setDemandOpen(true)}
-                title="Log a customer request"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
-              >
-                <MessageSquarePlus className="h-4 w-4" />
-              </button>
+              <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => setSimulateScanOpen(true)}
+                  title="Simulate barcode scan"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-background text-muted-foreground/60 hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary)/0.3)] hover:bg-[hsl(var(--primary)/0.04)] transition-all"
+                >
+                  <ScanBarcode className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setCameraOpen(true)}
+                  title="Scan barcode with camera"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-background text-muted-foreground/60 hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary)/0.3)] hover:bg-[hsl(var(--primary)/0.04)] transition-all"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setDemandOpen(true)}
+                  title="Log a customer request"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-background text-muted-foreground/60 hover:text-foreground hover:border-foreground/20 transition-all"
+                >
+                  <MessageSquarePlus className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1067,13 +1066,13 @@ export function Sales() {
           </Dialog>
 
           {/* Category pills */}
-          <div className="border-b border-border/60 px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-none">
+          <div className="border-b border-border/60 px-3 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => handleCategoryFilter(null)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-all ${
+              className={`shrink-0 rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all ${
                 activeCategory === null
-                  ? 'bg-[hsl(var(--primary))] text-white'
-                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                  ? 'bg-[hsl(var(--primary))] text-white shadow-sm'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               All
@@ -1082,15 +1081,18 @@ export function Sales() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryFilter(cat.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-all ${
+                className={`shrink-0 rounded-lg px-3.5 py-1.5 text-[12px] font-semibold transition-all ${
                   activeCategory === cat.id
-                    ? 'bg-[hsl(var(--primary))] text-white'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                    ? 'bg-[hsl(var(--primary))] text-white shadow-sm'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {cat.name}
               </button>
             ))}
+            <span className="shrink-0 text-[11px] text-muted-foreground/40 pl-2">
+              {products.length} items
+            </span>
           </div>
 
           {/* Product grid */}
@@ -1112,7 +1114,7 @@ export function Sales() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
                 {products.map((product) => {
                   const price =
                     typeof product.price === 'string'
@@ -1122,49 +1124,47 @@ export function Sales() {
                   return (
                     <motion.button
                       key={product.id}
-                      whileTap={{ scale: 0.97 }}
+                      whileTap={{ scale: 0.96 }}
                       onClick={() => addToCart(product)}
-                      className={`relative flex flex-col rounded-xl border transition-all text-left group ${
+                      className={`relative flex flex-col rounded-xl border-2 transition-all text-left group active:scale-[0.97] ${
                         inCart
-                          ? 'border-[hsl(var(--primary))]/50 bg-[hsl(var(--primary))]/5'
-                          : 'border-border/60 bg-background hover:border-foreground/20 hover:shadow-sm'
+                          ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.04)] shadow-[0_0_0_1px_hsl(var(--primary)/0.1)]'
+                          : 'border-transparent bg-background hover:border-border hover:shadow-md'
                       }`}
+                      style={{ boxShadow: inCart ? undefined : '0 1px 3px hsl(var(--foreground) / 0.04)' }}
                     >
                       {/* Product image */}
-                      <div className="relative aspect-[4/3] w-full rounded-t-xl overflow-hidden bg-muted/40 flex items-center justify-center">
+                      <div className="relative aspect-square w-full rounded-t-[10px] overflow-hidden bg-muted/30 flex items-center justify-center">
                         {product.image ? (
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
-                          <Package className="h-8 w-8 text-muted-foreground/30" />
+                          <div className="flex flex-col items-center gap-1">
+                            <Package className="h-8 w-8 text-muted-foreground/20" />
+                          </div>
                         )}
                         {inCart && (
-                          <div className="absolute top-2 right-2 bg-[hsl(var(--primary))] text-white text-[11px] font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                          <div className="absolute top-1.5 right-1.5 bg-[hsl(var(--primary))] text-white text-[11px] font-bold rounded-full h-6 min-w-[24px] px-1 flex items-center justify-center shadow-lg">
                             {inCart.quantity}
+                          </div>
+                        )}
+                        {store?.gst_enabled && product.gst_rate && (
+                          <div className="absolute bottom-1.5 left-1.5 bg-background/90 backdrop-blur-sm text-[9px] font-semibold text-muted-foreground rounded px-1.5 py-0.5">
+                            GST {product.gst_rate}%
                           </div>
                         )}
                       </div>
                       {/* Product info */}
-                      <div className="p-2.5 flex flex-col gap-0.5">
-                        <span className="text-[13px] font-medium text-foreground leading-tight line-clamp-2">
+                      <div className="p-2.5">
+                        <span className="text-[12px] font-medium text-foreground leading-tight line-clamp-1 block">
                           {product.name}
                         </span>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[15px] font-bold text-foreground">
-                            {formatPrice(price)}
-                          </span>
-                          {store?.gst_enabled && product.gst_rate && (
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] px-1.5 py-0 h-4"
-                            >
-                              {product.gst_rate}%
-                            </Badge>
-                          )}
-                        </div>
+                        <span className="text-[16px] font-bold text-foreground mt-0.5 block">
+                          {formatPrice(price)}
+                        </span>
                       </div>
                     </motion.button>
                   )
@@ -1180,27 +1180,30 @@ export function Sales() {
           className="rounded-xl border border-border/60 bg-card flex flex-col overflow-hidden"
         >
           {/* Cart header */}
-          <div className={`border-b border-border/60 px-4 py-3 flex items-center justify-between transition-colors duration-500 ${scanFlash ? 'bg-green-500/10' : ''}`}>
-            <div className="flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-              <span className="text-[14px] font-semibold text-foreground">
-                {t('pages.sales.currentSale')}
-              </span>
+          <div className={`border-b border-border/60 px-4 py-2.5 flex items-center justify-between transition-colors duration-500 ${scanFlash ? 'bg-[hsl(var(--color-success)/0.1)]' : ''}`}>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.08)]">
+                <Receipt className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+              </div>
+              <div>
+                <span className="text-[13px] font-semibold text-foreground block leading-tight">
+                  {t('pages.sales.currentSale')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {cart.reduce((s, c) => s + c.quantity, 0)} {t('pages.sales.items')}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] text-muted-foreground bg-muted/60 rounded-full px-2.5 py-0.5">
-                {cart.reduce((s, c) => s + c.quantity, 0)} {t('pages.sales.items')}
-              </span>
-              {cart.length > 0 && (
-                <button
-                  onClick={clearCart}
-                  className="text-[12px] text-destructive hover:text-destructive/80 font-medium flex items-center gap-1"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Clear
-                </button>
-              )}
-            </div>
+            {cart.length > 0 && (
+              <button
+                onClick={clearCart}
+                title="Clear cart (F4)"
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span className="hidden sm:inline">Clear</span>
+              </button>
+            )}
           </div>
 
           {/* Cart items */}
@@ -1316,107 +1319,101 @@ export function Sales() {
             )}
           </div>
 
-          {/* Cart footer */}
-          <div className="border-t border-border/60 p-4 space-y-2.5">
-            {/* Subtotal */}
-            <div className="flex items-center justify-between text-[13px]">
-              <span className="text-muted-foreground">
-                {t('pages.sales.subtotal')}
-              </span>
-              <span className="text-foreground font-medium">
-                {formatPrice(subtotal)}
-              </span>
-            </div>
+          {/* Cart footer — receipt style */}
+          <div className="border-t-2 border-border/60 bg-[hsl(var(--color-surface-raised))]">
+            {/* Totals section */}
+            <div className="px-4 pt-3 pb-2 space-y-1.5">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-muted-foreground">{t('pages.sales.subtotal')}</span>
+                <span className="text-foreground font-medium tabular-nums">{formatPrice(subtotal)}</span>
+              </div>
 
-            {/* CGST / SGST split */}
-            {store?.gst_enabled && totalGst > 0 && (
-              <>
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-muted-foreground">CGST</span>
-                  <span className="text-foreground font-medium">
-                    {formatPrice(cgst)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-muted-foreground">SGST</span>
-                  <span className="text-foreground font-medium">
-                    {formatPrice(sgst)}
-                  </span>
-                </div>
-              </>
-            )}
+              {store?.gst_enabled && totalGst > 0 && (
+                <>
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-muted-foreground">CGST</span>
+                    <span className="text-foreground font-medium tabular-nums">{formatPrice(cgst)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-muted-foreground">SGST</span>
+                    <span className="text-foreground font-medium tabular-nums">{formatPrice(sgst)}</span>
+                  </div>
+                </>
+              )}
 
-            {/* Discount */}
-            <div className="flex items-center justify-between text-[13px]">
-              <span className="text-muted-foreground">Discount</span>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground text-[12px]">{currency}</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={overallDiscount || ''}
-                  onChange={(e) =>
-                    setOverallDiscount(parseFloat(e.target.value) || 0)
-                  }
-                  placeholder="0.00"
-                  className="h-7 w-20 rounded border border-border/60 bg-background px-2 text-[12px] text-foreground text-right outline-none focus:border-foreground/20"
-                />
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-muted-foreground">Discount</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground/60 text-[11px]">{currency}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={overallDiscount || ''}
+                    onChange={(e) => setOverallDiscount(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    className="h-6 w-16 rounded border border-border/50 bg-background px-1.5 text-[12px] text-foreground text-right outline-none focus:border-[hsl(var(--primary)/0.4)] tabular-nums"
+                  />
+                </div>
+              </div>
+
+              <div className="h-px bg-border/80 my-1" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-[15px] font-bold text-foreground">{t('pages.sales.total')}</span>
+                <span className="font-display text-2xl font-bold text-foreground tabular-nums">
+                  {formatPrice(grandTotal)}
+                </span>
               </div>
             </div>
 
-            <div className="h-px bg-border/60" />
+            {/* Payment + Charge */}
+            <div className="px-3 pb-3 space-y-2">
+              {/* Payment method */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {(
+                  [
+                    { key: 'cash' as const, icon: Banknote, label: 'Cash', hint: 'F9' },
+                    { key: 'card' as const, icon: CreditCard, label: 'Card', hint: 'F10' },
+                    { key: 'mobile' as const, icon: Smartphone, label: 'UPI', hint: 'F11' },
+                  ] as const
+                ).map(({ key, icon: Icon, label, hint }) => (
+                  <button
+                    key={key}
+                    onClick={() => setPaymentMethod(key)}
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 py-2.5 text-[12px] font-semibold transition-all ${
+                      paymentMethod === key
+                        ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]'
+                        : 'border-border/40 text-muted-foreground hover:border-border hover:bg-muted/30'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 mb-0.5" />
+                    <span>{label}</span>
+                    <kbd className="text-[8px] font-mono opacity-40">{hint}</kbd>
+                  </button>
+                ))}
+              </div>
 
-            {/* Total */}
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] font-semibold text-foreground">
-                {t('pages.sales.total')}
-              </span>
-              <span className="font-display text-xl font-bold text-foreground">
-                {formatPrice(grandTotal)}
-              </span>
+              {/* CHARGE BUTTON — the hero */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                disabled={cart.length === 0 || checkingOut}
+                onClick={handleCheckout}
+                className={`relative flex h-14 w-full items-center justify-center gap-2.5 rounded-xl text-[17px] font-bold text-white transition-all ${
+                  cart.length > 0 && !checkingOut
+                    ? 'bg-[hsl(var(--primary))] shadow-[0_4px_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_6px_28px_hsl(var(--primary)/0.4)]'
+                    : 'bg-[hsl(var(--primary))] opacity-25'
+                }`}
+              >
+                {checkingOut ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    {t('pages.sales.charge')} {formatPrice(grandTotal)}
+                    <kbd className="absolute right-3 text-[10px] font-mono opacity-40 bg-white/10 px-2 py-0.5 rounded-md">F12</kbd>
+                  </>
+                )}
+              </motion.button>
             </div>
-
-            {/* Payment method */}
-            <div className="grid grid-cols-3 gap-2">
-              {(
-                [
-                  { key: 'cash' as const, icon: Banknote, label: 'Cash', hint: 'F9' },
-                  { key: 'card' as const, icon: CreditCard, label: 'Card', hint: 'F10' },
-                  { key: 'mobile' as const, icon: Smartphone, label: 'Mobile', hint: 'F11' },
-                ] as const
-              ).map(({ key, icon: Icon, label, hint }) => (
-                <button
-                  key={key}
-                  onClick={() => setPaymentMethod(key)}
-                  className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border py-2 text-[12px] font-medium transition-all ${
-                    paymentMethod === key
-                      ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))]'
-                      : 'border-border/60 text-muted-foreground hover:bg-muted/40'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" />{label}</span>
-                  <kbd className="text-[9px] font-mono opacity-50">{hint}</kbd>
-                </button>
-              ))}
-            </div>
-
-            {/* Charge button */}
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              disabled={cart.length === 0 || checkingOut}
-              onClick={handleCheckout}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[hsl(var(--primary))] text-[15px] font-semibold text-white disabled:opacity-30 transition-opacity"
-            >
-              {checkingOut ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4" />
-                  {t('pages.sales.charge')} {formatPrice(grandTotal)}
-                  <kbd className="ml-2 text-[10px] font-mono opacity-50 bg-white/10 px-1.5 py-0.5 rounded">F12</kbd>
-                </>
-              )}
-            </motion.button>
           </div>
         </motion.div>
       </div>
