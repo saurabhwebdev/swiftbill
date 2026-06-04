@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 30 10% 10%;
+    --card: 40 15% 99%;
+    --card-foreground: 30 10% 10%;
+    --popover: 40 15% 99%;
+    --popover-foreground: 30 10% 10%;
+    --primary: 245 58% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 35 12% 93%;
+    --secondary-foreground: 30 10% 10%;
+    --muted: 35 10% 94%;
+    --muted-foreground: 30 5% 50%;
+    --accent: 245 58% 51%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 10% 90%;
+    --input: 35 10% 90%;
+    --ring: 245 58% 51%;
+    --radius: 0.625rem;
+    --color-brand: 245 58% 51%;
+    --color-brand-muted: 245 30% 95%;
+    --color-brand-subtle: 245 40% 96%;
+    --color-success: 152 60% 42%;
+    --color-warning: 38 92% 50%;
+    --color-surface-raised: 40 18% 97%;
+  }
+
+  .dark {
+    --background: 225 15% 8%;
+    --foreground: 40 10% 90%;
+    --card: 225 14% 10%;
+    --card-foreground: 40 10% 90%;
+    --popover: 225 14% 10%;
+    --popover-foreground: 40 10% 90%;
+    --primary: 245 58% 61%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 12% 16%;
+    --secondary-foreground: 40 10% 90%;
+    --muted: 225 10% 16%;
+    --muted-foreground: 225 5% 55%;
+    --accent: 245 58% 61%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 225 10% 18%;
+    --input: 225 10% 18%;
+    --ring: 245 58% 61%;
+    --color-brand: 245 58% 61%;
+    --color-brand-muted: 245 20% 18%;
+    --color-brand-subtle: 245 15% 15%;
+    --color-success: 152 50% 48%;
+    --color-warning: 38 80% 55%;
+    --color-surface-raised: 225 12% 12%;
+  }
+
+  /* Accent color overrides */
+  [data-accent="indigo"] { --primary: 245 58% 51%; --accent: 245 58% 51%; --ring: 245 58% 51%; --color-brand: 245 58% 51%; }
+  [data-accent="blue"] { --primary: 217 91% 50%; --accent: 217 91% 50%; --ring: 217 91% 50%; --color-brand: 217 91% 50%; }
+  [data-accent="violet"] { --primary: 263 70% 55%; --accent: 263 70% 55%; --ring: 263 70% 55%; --color-brand: 263 70% 55%; }
+  [data-accent="emerald"] { --primary: 160 84% 36%; --accent: 160 84% 36%; --ring: 160 84% 36%; --color-brand: 160 84% 36%; }
+  [data-accent="rose"] { --primary: 347 77% 50%; --accent: 347 77% 50%; --ring: 347 77% 50%; --color-brand: 347 77% 50%; }
+  [data-accent="amber"] { --primary: 32 95% 44%; --accent: 32 95% 44%; --ring: 32 95% 44%; --color-brand: 32 95% 44%; }
+  [data-accent="slate"] { --primary: 215 16% 40%; --accent: 215 16% 40%; --ring: 215 16% 40%; --color-brand: 215 16% 40%; }
+
+  .dark[data-accent="indigo"] { --primary: 245 58% 61%; --accent: 245 58% 61%; --ring: 245 58% 61%; --color-brand: 245 58% 61%; }
+  .dark[data-accent="blue"] { --primary: 217 91% 60%; --accent: 217 91% 60%; --ring: 217 91% 60%; --color-brand: 217 91% 60%; }
+  .dark[data-accent="violet"] { --primary: 263 70% 65%; --accent: 263 70% 65%; --ring: 263 70% 65%; --color-brand: 263 70% 65%; }
+  .dark[data-accent="emerald"] { --primary: 160 84% 44%; --accent: 160 84% 44%; --ring: 160 84% 44%; --color-brand: 160 84% 44%; }
+  .dark[data-accent="rose"] { --primary: 347 77% 60%; --accent: 347 77% 60%; --ring: 347 77% 60%; --color-brand: 347 77% 60%; }
+  .dark[data-accent="amber"] { --primary: 32 95% 52%; --accent: 32 95% 52%; --ring: 32 95% 52%; --color-brand: 32 95% 52%; }
+  .dark[data-accent="slate"] { --primary: 215 16% 55%; --accent: 215 16% 55%; --ring: 215 16% 55%; --color-brand: 215 16% 55%; }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+  }
+
+  ::selection {
+    background: hsl(var(--color-brand) / 0.15);
+    color: hsl(var(--foreground));
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground) / 0.1);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground) / 0.2);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Cabinet Grotesk', 'Satoshi', sans-serif;
+  }
+}

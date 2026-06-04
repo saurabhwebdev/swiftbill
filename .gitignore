@@ -1,0 +1,48 @@
+# Python
+*.py[cod]
+*$py.class
+__pycache__/
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+backend/venv/
+venv/
+.env
+*.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Django
+backend/staticfiles/
+backend/media/
+*.sqlite3
+db.sqlite3
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# OS
+Thumbs.db
+.DS_Store
+*.log
+
+# Claude
+.claude/
