@@ -861,7 +861,7 @@ export function Sales() {
       variants={container}
       initial="initial"
       animate="animate"
-      className="max-w-[1600px]"
+      className="w-full"
     >
       {/* Title hidden — terminal bar provides context. Maximizes selling space. */}
 

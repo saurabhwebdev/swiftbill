@@ -434,7 +434,7 @@ export function SalesHistory() {
       variants={container}
       initial="initial"
       animate="animate"
-      className="max-w-[1600px]"
+      className="w-full"
     >
       {/* Page header */}
       <motion.div variants={item} className="mb-4">

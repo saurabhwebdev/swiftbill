@@ -432,7 +432,7 @@ export function Dashboard() {
       variants={container}
       initial="initial"
       animate="animate"
-      className="max-w-6xl space-y-8"
+      className="w-full space-y-8"
     >
       {/* Greeting */}
       <motion.div variants={item}>

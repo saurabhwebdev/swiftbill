@@ -342,7 +342,7 @@ export function Demand() {
       variants={container}
       initial="initial"
       animate="animate"
-      className="max-w-[1400px]"
+      className="w-full"
     >
       {/* Header */}
       <motion.div variants={item} className="mb-6 flex items-start justify-between">

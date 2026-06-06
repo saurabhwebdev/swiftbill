@@ -413,7 +413,7 @@ export function Products() {
       variants={container}
       initial="initial"
       animate="animate"
-      className="max-w-6xl space-y-6"
+      className="w-full space-y-6"
     >
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between">
