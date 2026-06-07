@@ -14,6 +14,10 @@ import {
   Smartphone,
   TrendingUp,
   Tag,
+  ArrowUpRight,
+  ArrowDownRight,
+  Users,
+  BarChart3,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -29,6 +33,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
@@ -43,7 +49,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-// ── Animation variants ─────────────────────────────────────────────
 const container = {
   animate: { transition: { staggerChildren: 0.06 } },
 }
@@ -128,7 +133,7 @@ interface CategorySale {
 }
 
 interface HourlySale {
-  hour: number
+  hour: string
   total: number
   count: number
 }
@@ -137,6 +142,24 @@ interface TopProduct {
   name: string
   total: number
   quantity: number
+}
+
+interface AvgOrderTrend {
+  date: string
+  day: string
+  avg: number
+  count: number
+}
+
+interface CashierPerf {
+  name: string
+  total: number
+  transactions: number
+}
+
+interface DailyComparison {
+  today: { total: number; count: number; avg: number; tax: number; discount: number }
+  yesterday: { total: number; count: number; avg: number; tax: number; discount: number }
 }
 
 // ── Accent color hook ───────────────────────────────────────────────
@@ -164,8 +187,25 @@ function useAccentColor() {
   return color
 }
 
+function useThemeTickColor() {
+  const [tickColor, setTickColor] = useState('#888')
+  useEffect(() => {
+    const update = () => {
+      const isDark = document.documentElement.classList.contains('dark')
+      setTickColor(isDark ? '#a1a1aa' : '#71717a')
+    }
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+    return () => observer.disconnect()
+  }, [])
+  return tickColor
+}
+
 function accentVariants(base: string) {
-  // base is like "hsl(245, 58%, 51%)"
   const match = base.match(/hsl\(([^,]+),\s*([^,]+),\s*([^)]+)\)/)
   if (!match) return { light: base, lighter: base, dark: base }
   const h = match[1]
@@ -260,12 +300,19 @@ function ChartTooltip({
   )
 }
 
+function pctChange(current: number, previous: number): { pct: number; up: boolean } {
+  if (previous === 0) return { pct: current > 0 ? 100 : 0, up: current >= 0 }
+  const pct = ((current - previous) / previous) * 100
+  return { pct: Math.abs(Math.round(pct)), up: pct >= 0 }
+}
+
 // ── Dashboard ───────────────────────────────────────────────────────
 export function Dashboard() {
   const { t } = useTranslation()
   const user = useAuthStore((state) => state.user)
   const accent = useAccentColor()
   const variants = accentVariants(accent)
+  const tickColor = useThemeTickColor()
 
   const hour = new Date().getHours()
   const greeting =
@@ -287,6 +334,9 @@ export function Dashboard() {
   const [categorySales, setCategorySales] = useState<CategorySale[]>([])
   const [hourlySales, setHourlySales] = useState<HourlySale[]>([])
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
+  const [avgOrderTrend, setAvgOrderTrend] = useState<AvgOrderTrend[]>([])
+  const [cashierPerf, setCashierPerf] = useState<CashierPerf[]>([])
+  const [dailyComparison, setDailyComparison] = useState<DailyComparison | null>(null)
 
   // ── Loading state ───────────────────────────────────────────────
   const [loadingStats, setLoadingStats] = useState(true)
@@ -307,7 +357,6 @@ export function Dashboard() {
   )
 
   useEffect(() => {
-    // Stats
     Promise.all([
       safeFetch<SaleSummary>('sales/sales/today_summary/'),
       safeFetch<StockSummary>('inventory/stocks/summary/'),
@@ -317,7 +366,6 @@ export function Dashboard() {
       setLoadingStats(false)
     })
 
-    // Recent sales
     safeFetch<{ count: number; results: Sale[] } | Sale[]>('sales/sales/', {
       ordering: '-created_at',
       page_size: 10,
@@ -328,7 +376,6 @@ export function Dashboard() {
       setLoadingSales(false)
     })
 
-    // Low stock
     safeFetch<{ count: number; results: LowStockItem[] } | LowStockItem[]>(
       'inventory/stocks/',
       { low_stock: true },
@@ -339,19 +386,24 @@ export function Dashboard() {
       setLoadingLowStock(false)
     })
 
-    // Chart data
     Promise.all([
       safeFetch<WeeklySale[]>('sales/sales/weekly_sales/'),
       safeFetch<PaymentBreakdown[]>('sales/sales/payment_breakdown/'),
       safeFetch<CategorySale[]>('sales/sales/category_sales/'),
       safeFetch<HourlySale[]>('sales/sales/hourly_sales/'),
       safeFetch<TopProduct[]>('sales/sales/top_products/'),
-    ]).then(([weekly, payment, category, hourly, top]) => {
+      safeFetch<AvgOrderTrend[]>('sales/sales/avg_order_trend/'),
+      safeFetch<CashierPerf[]>('sales/sales/cashier_performance/'),
+      safeFetch<DailyComparison>('sales/sales/daily_comparison/'),
+    ]).then(([weekly, payment, category, hourly, top, avgOrd, cashiers, daily]) => {
       if (weekly) setWeeklySales(weekly)
       if (payment) setPaymentBreakdown(payment)
       if (category) setCategorySales(category)
       if (hourly) setHourlySales(hourly)
       if (top) setTopProducts(top)
+      if (avgOrd) setAvgOrderTrend(avgOrd)
+      if (cashiers) setCashierPerf(cashiers)
+      if (daily) setDailyComparison(daily)
       setLoadingCharts(false)
     })
   }, [safeFetch])
@@ -367,12 +419,8 @@ export function Dashboard() {
   const stats = [
     {
       label: t('pages.dashboard.todaysSales'),
-      value: loadingStats
-        ? null
-        : formatCurrency(netSales),
-      subtext: loadingStats || refundTotal === 0
-        ? null
-        : `Gross ${formatCurrency(grossSales)}`,
+      value: loadingStats ? null : formatCurrency(netSales),
+      subtext: loadingStats || refundTotal === 0 ? null : `Gross ${formatCurrency(grossSales)}`,
       icon: DollarSign,
       accent: false,
     },
@@ -392,47 +440,35 @@ export function Dashboard() {
     },
     {
       label: t('pages.dashboard.taxCollected') || 'Tax Collected',
-      value: loadingStats
-        ? null
-        : formatCurrency(Number(saleSummary?.total_tax ?? 0)),
+      value: loadingStats ? null : formatCurrency(Number(saleSummary?.total_tax ?? 0)),
       subtext: null as string | null,
       icon: TrendingUp,
       accent: false,
     },
     ...(refundTotal > 0 || refundCount > 0
-      ? [
-          {
-            label: 'Refunds',
-            value: loadingStats ? null : formatCurrency(refundTotal),
-            subtext: loadingStats ? null : `${refundCount} refund${refundCount !== 1 ? 's' : ''}`,
-            icon: AlertTriangle,
-            accent: true,
-          },
-        ]
+      ? [{
+          label: 'Refunds',
+          value: loadingStats ? null : formatCurrency(refundTotal),
+          subtext: loadingStats ? null : `${refundCount} refund${refundCount !== 1 ? 's' : ''}`,
+          icon: AlertTriangle,
+          accent: true,
+        }]
       : []),
     ...(Number(saleSummary?.total_discount ?? 0) > 0
-      ? [
-          {
-            label: t('pages.dashboard.discountsGiven', 'Discounts Given'),
-            value: loadingStats ? null : formatCurrency(Number(saleSummary?.total_discount ?? 0)),
-            subtext: null as string | null,
-            icon: Tag,
-            accent: false,
-          },
-        ]
+      ? [{
+          label: t('pages.dashboard.discountsGiven', 'Discounts Given'),
+          value: loadingStats ? null : formatCurrency(Number(saleSummary?.total_discount ?? 0)),
+          subtext: null as string | null,
+          icon: Tag,
+          accent: false,
+        }]
       : []),
   ]
 
-  // Computed totals
   const paymentTotal = paymentBreakdown.reduce((s, p) => s + p.total, 0)
 
-  // Axis tick style
-  const axisTickStyle = {
-    fontSize: 11,
-    fill: 'var(--muted-foreground, #888)',
-  }
+  const axisTickStyle = { fontSize: 11, fill: tickColor }
 
-  // Chart loading placeholder
   const ChartLoading = () => (
     <div className="flex items-center justify-center h-full min-h-[200px]">
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -469,42 +505,67 @@ export function Dashboard() {
             }`}
           >
             <div className="flex items-start justify-between mb-4">
-              <div
-                className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                  stat.accent
-                    ? 'bg-amber-100 dark:bg-amber-900/30'
-                    : 'bg-muted/60'
-                }`}
-              >
-                <stat.icon
-                  className={`h-[18px] w-[18px] ${
-                    stat.accent
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-muted-foreground'
-                  }`}
-                />
+              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                stat.accent ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/60'
+              }`}>
+                <stat.icon className={`h-[18px] w-[18px] ${
+                  stat.accent ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
+                }`} />
               </div>
             </div>
             <p className="font-display text-2xl font-bold text-foreground">
               {stat.value === null ? (
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
-                stat.value
-              )}
+              ) : stat.value}
             </p>
-            <p className="text-[13px] text-muted-foreground mt-0.5">
-              {stat.label}
-            </p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">{stat.label}</p>
             {stat.subtext && (
-              <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                {stat.subtext}
-              </p>
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">{stat.subtext}</p>
             )}
           </motion.div>
         ))}
       </div>
 
-      {/* ── Row 2: Weekly Sales + Payment Breakdown ────────────────── */}
+      {/* ── Row 2: Today vs Yesterday Comparison ─────────────────── */}
+      {dailyComparison && !loadingCharts && (
+        <motion.div variants={item}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Revenue', today: dailyComparison.today.total, yesterday: dailyComparison.yesterday.total, fmt: true },
+              { label: 'Orders', today: dailyComparison.today.count, yesterday: dailyComparison.yesterday.count, fmt: false },
+              { label: 'Avg Order', today: dailyComparison.today.avg, yesterday: dailyComparison.yesterday.avg, fmt: true },
+              { label: 'Discounts', today: dailyComparison.today.discount, yesterday: dailyComparison.yesterday.discount, fmt: true },
+            ].map((m) => {
+              const { pct, up } = pctChange(m.today, m.yesterday)
+              return (
+                <div key={m.label} className="rounded-xl border border-border/60 bg-card p-4">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{m.label}</p>
+                  <div className="flex items-end justify-between">
+                    <p className="text-xl font-bold text-foreground">
+                      {m.fmt ? formatCurrency(m.today) : m.today}
+                    </p>
+                    {pct > 0 && (
+                      <div className={`flex items-center gap-0.5 text-[12px] font-semibold ${
+                        m.label === 'Discounts'
+                          ? (up ? 'text-amber-500' : 'text-emerald-500')
+                          : (up ? 'text-emerald-500' : 'text-red-500')
+                      }`}>
+                        {up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                        {pct}%
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/60 mt-1">
+                    Yesterday: {m.fmt ? formatCurrency(m.yesterday) : m.yesterday}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Row 3: Weekly Sales + Payment Breakdown ────────────────── */}
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Weekly Sales Area Chart */}
         <motion.div variants={item}>
@@ -524,70 +585,24 @@ export function Dashboard() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart
-                    data={weeklySales}
-                    margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
-                  >
+                  <AreaChart data={weeklySales} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                     <defs>
-                      <linearGradient
-                        id="accentGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={accent}
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={accent}
-                          stopOpacity={0.02}
-                        />
+                      <linearGradient id="accentGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={accent} stopOpacity={0.3} />
+                        <stop offset="100%" stopColor={accent} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      strokeOpacity={0.1}
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="day"
-                      tick={axisTickStyle}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={axisTickStyle}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v: number) =>
-                        v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
-                      }
-                    />
-                    <Tooltip
-                      content={
-                        <ChartTooltip
-                          formatter={(value, name, entry) => {
-                            if (name === 'Total')
-                              return `${formatCurrency(value)} (${entry.payload.count} txns)`
-                            return String(value)
-                          }}
-                        />
-                      }
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="total"
-                      name="Total"
-                      stroke={accent}
-                      strokeWidth={2.5}
-                      fill="url(#accentGradient)"
-                      dot={{ r: 3, fill: accent, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: accent, strokeWidth: 2, stroke: 'var(--card)' }}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                    <XAxis dataKey="day" tick={axisTickStyle} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTickStyle} axisLine={false} tickLine={false}
+                      tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                    <Tooltip content={<ChartTooltip formatter={(value, name, entry) => {
+                      if (name === 'Total') return `${formatCurrency(value)} (${entry.payload.count} txns)`
+                      return String(value)
+                    }} />} />
+                    <Area type="monotone" dataKey="total" name="Total" stroke={accent} strokeWidth={2.5}
+                      fill="url(#accentGradient)" dot={{ r: 3, fill: accent, strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: accent, strokeWidth: 2, stroke: 'var(--card)' }} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -599,9 +614,7 @@ export function Dashboard() {
         <motion.div variants={item}>
           <Card className="border-border/60">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold">
-                Payment Methods
-              </CardTitle>
+              <CardTitle className="text-[15px] font-semibold">Payment Methods</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingCharts ? (
@@ -614,53 +627,24 @@ export function Dashboard() {
                 <div className="relative">
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
-                      <Pie
-                        data={paymentBreakdown}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={85}
-                        paddingAngle={3}
-                        dataKey="total"
-                        nameKey="method"
-                        stroke="none"
-                      >
+                      <Pie data={paymentBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+                        paddingAngle={3} dataKey="total" nameKey="method" stroke="none">
                         {paymentBreakdown.map((_, i) => {
                           const shades = [accent, variants.light, variants.lighter]
-                          return (
-                            <Cell
-                              key={i}
-                              fill={shades[i % shades.length]}
-                            />
-                          )
+                          return <Cell key={i} fill={shades[i % shades.length]} />
                         })}
                       </Pie>
-                      <Tooltip
-                        content={
-                          <ChartTooltip
-                            formatter={(value) => formatCurrency(value)}
-                          />
-                        }
-                      />
-                      <Legend
-                        verticalAlign="bottom"
-                        iconType="circle"
-                        iconSize={8}
+                      <Tooltip content={<ChartTooltip formatter={(value) => formatCurrency(value)} />} />
+                      <Legend verticalAlign="bottom" iconType="circle" iconSize={8}
                         formatter={(value: string) => (
-                          <span className="text-[11px] text-muted-foreground capitalize">
-                            {value}
-                          </span>
-                        )}
-                      />
+                          <span className="text-[11px] text-muted-foreground capitalize">{value}</span>
+                        )} />
                     </PieChart>
                   </ResponsiveContainer>
-                  {/* Center text */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginBottom: 28 }}>
                     <div className="text-center">
                       <p className="text-[11px] text-muted-foreground">Total</p>
-                      <p className="text-[15px] font-bold text-foreground">
-                        {formatCurrency(paymentTotal)}
-                      </p>
+                      <p className="text-[15px] font-bold text-foreground">{formatCurrency(paymentTotal)}</p>
                     </div>
                   </div>
                 </div>
@@ -670,13 +654,14 @@ export function Dashboard() {
         </motion.div>
       </div>
 
-      {/* ── Row 3: Top Products + Category Sales ───────────────────── */}
+      {/* ── Row 4: Top Products + Avg Order Value Trend ───────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Top Products Horizontal Bar */}
+        {/* Top Products — Custom styled bars */}
         <motion.div variants={item}>
           <Card className="border-border/60">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold">
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 Top Products
               </CardTitle>
             </CardHeader>
@@ -688,64 +673,78 @@ export function Dashboard() {
                   No product data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart
-                    data={topProducts.slice(0, 8)}
-                    layout="vertical"
-                    margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      strokeOpacity={0.1}
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      tick={axisTickStyle}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v: number) =>
-                        v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
-                      }
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={axisTickStyle}
-                      axisLine={false}
-                      tickLine={false}
-                      width={100}
-                    />
-                    <Tooltip
-                      content={
-                        <ChartTooltip
-                          formatter={(value, _name, entry) =>
-                            `${formatCurrency(value)} (${entry.payload.quantity} sold)`
-                          }
-                        />
-                      }
-                    />
-                    <Bar
-                      dataKey="total"
-                      name="Sales"
-                      fill={accent}
-                      radius={[0, 4, 4, 0]}
-                      barSize={20}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-3">
+                  {topProducts.slice(0, 6).map((p, i) => {
+                    const maxTotal = topProducts[0]?.total || 1
+                    const pct = (p.total / maxTotal) * 100
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[12px] font-medium text-foreground truncate max-w-[60%]">{p.name}</span>
+                          <span className="text-[12px] text-muted-foreground tabular-nums">{formatCurrency(p.total)}</span>
+                        </div>
+                        <div className="relative h-2.5 rounded-full bg-muted/50 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.8, delay: i * 0.1, ease: 'easeOut' }}
+                            className="absolute inset-y-0 left-0 rounded-full"
+                            style={{ background: `linear-gradient(90deg, ${accent}, ${variants.light})` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">{p.quantity} units sold</p>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>
         </motion.div>
 
+        {/* Avg Order Value Trend — Line Chart */}
+        <motion.div variants={item}>
+          <Card className="border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                Avg Order Value (7 days)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingCharts ? (
+                <ChartLoading />
+              ) : avgOrderTrend.length === 0 ? (
+                <div className="flex items-center justify-center h-[260px] text-[13px] text-muted-foreground">
+                  No data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={avgOrderTrend} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                    <XAxis dataKey="day" tick={axisTickStyle} axisLine={false} tickLine={false} />
+                    <YAxis tick={axisTickStyle} axisLine={false} tickLine={false}
+                      tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v))} />
+                    <Tooltip content={<ChartTooltip formatter={(value, _name, entry) =>
+                      `${formatCurrency(value)} (${entry.payload.count} orders)`} />} />
+                    <Line type="monotone" dataKey="avg" name="Avg Order" stroke={accent} strokeWidth={2.5}
+                      dot={{ r: 4, fill: accent, strokeWidth: 2, stroke: 'var(--card)' }}
+                      activeDot={{ r: 6, fill: accent, strokeWidth: 2, stroke: 'var(--card)' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* ── Row 5: Category Sales + Cashier Leaderboard ───────────── */}
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Category Sales Donut */}
         <motion.div variants={item}>
           <Card className="border-border/60">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[15px] font-semibold">
-                Sales by Category
-              </CardTitle>
+              <CardTitle className="text-[15px] font-semibold">Sales by Category</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingCharts ? (
@@ -755,44 +754,169 @@ export function Dashboard() {
                   No category data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={categorySales}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={85}
-                      paddingAngle={2}
-                      dataKey="total"
-                      nameKey="category"
-                      stroke="none"
-                    >
-                      {categorySales.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={pieColors(accent, categorySales.length)[i]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={
-                        <ChartTooltip
-                          formatter={(value) => formatCurrency(value)}
-                        />
-                      }
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      iconType="circle"
-                      iconSize={8}
-                      formatter={(value: string) => (
-                        <span className="text-[11px] text-muted-foreground">
-                          {value}
-                        </span>
-                      )}
-                    />
-                  </PieChart>
+                <div className="flex items-center gap-6">
+                  <ResponsiveContainer width="50%" height={220}>
+                    <PieChart>
+                      <Pie data={categorySales} cx="50%" cy="50%" innerRadius={45} outerRadius={80}
+                        paddingAngle={2} dataKey="total" nameKey="category" stroke="none">
+                        {categorySales.map((_, i) => (
+                          <Cell key={i} fill={pieColors(accent, categorySales.length)[i]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<ChartTooltip formatter={(value) => formatCurrency(value)} />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2.5">
+                    {categorySales.map((c, i) => {
+                      const catTotal = categorySales.reduce((s, x) => s + x.total, 0)
+                      const pct = catTotal > 0 ? Math.round((c.total / catTotal) * 100) : 0
+                      return (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="h-3 w-3 rounded-full shrink-0"
+                            style={{ backgroundColor: pieColors(accent, categorySales.length)[i] }} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[12px] font-medium text-foreground truncate">{c.category}</span>
+                              <span className="text-[11px] text-muted-foreground ml-2">{pct}%</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground/70">{formatCurrency(c.total)}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Cashier Leaderboard */}
+        <motion.div variants={item}>
+          <Card className="border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Cashier Leaderboard
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingCharts ? (
+                <ChartLoading />
+              ) : cashierPerf.length === 0 ? (
+                <div className="flex items-center justify-center h-[220px] text-[13px] text-muted-foreground">
+                  No cashier data
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cashierPerf.slice(0, 5).map((c, i) => {
+                    const maxTotal = cashierPerf[0]?.total || 1
+                    const pct = (c.total / maxTotal) * 100
+                    const medals = ['bg-amber-400/20 text-amber-500 border-amber-400/40', 'bg-zinc-300/20 text-zinc-400 border-zinc-400/40', 'bg-orange-400/20 text-orange-500 border-orange-400/40']
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-bold shrink-0 ${
+                          i < 3 ? medals[i] : 'bg-muted/40 text-muted-foreground border-border/40'
+                        }`}>
+                          {i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[12px] font-medium text-foreground truncate">{c.name}</span>
+                            <span className="text-[12px] font-semibold text-foreground tabular-nums">{formatCurrency(c.total)}</span>
+                          </div>
+                          <div className="relative h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.8, delay: i * 0.1 }}
+                              className="absolute inset-y-0 left-0 rounded-full"
+                              style={{ background: accent }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">{c.transactions} transactions</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* ── Row 6: Hourly Sales Heatmap-style + Weekly Revenue vs Transactions ── */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Hourly Sales */}
+        <motion.div variants={item}>
+          <Card className="border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Hourly Sales Today
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingCharts ? (
+                <ChartLoading />
+              ) : hourlySales.length === 0 ? (
+                <div className="flex items-center justify-center h-[200px] text-[13px] text-muted-foreground">
+                  No hourly data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={hourlySales} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                    <XAxis dataKey="hour" tick={axisTickStyle} axisLine={false} tickLine={false} interval={2} />
+                    <YAxis tick={axisTickStyle} axisLine={false} tickLine={false}
+                      tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                    <Tooltip content={<ChartTooltip formatter={(value, _name, entry) =>
+                      `${formatCurrency(value)} (${entry.payload.count} txns)`} />} />
+                    <Bar dataKey="total" name="Sales" radius={[3, 3, 0, 0]} barSize={14}>
+                      {hourlySales.map((entry, i) => {
+                        const maxH = Math.max(...hourlySales.map(h => h.total))
+                        const opacity = maxH > 0 ? 0.3 + (entry.total / maxH) * 0.7 : 0.3
+                        return <Cell key={i} fill={accent} fillOpacity={opacity} />
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Weekly Revenue + Transaction Count dual-axis */}
+        <motion.div variants={item}>
+          <Card className="border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-[15px] font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                Revenue vs Orders (7 days)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingCharts ? (
+                <ChartLoading />
+              ) : weeklySales.length === 0 ? (
+                <div className="flex items-center justify-center h-[200px] text-[13px] text-muted-foreground">
+                  No data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={weeklySales} margin={{ top: 8, right: 40, left: -8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                    <XAxis dataKey="day" tick={axisTickStyle} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={axisTickStyle} axisLine={false} tickLine={false}
+                      tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                    <YAxis yAxisId="right" orientation="right" tick={axisTickStyle} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTooltip formatter={(value, name) =>
+                      name === 'Revenue' ? formatCurrency(value) : `${value} orders`} />} />
+                    <Bar yAxisId="left" dataKey="total" name="Revenue" fill={accent} fillOpacity={0.7} radius={[3, 3, 0, 0]} barSize={18} />
+                    <Line yAxisId="right" type="monotone" dataKey="count" name="Orders"
+                      stroke={variants.light} strokeWidth={2.5} dot={{ r: 3, fill: variants.light, strokeWidth: 0 }} />
+                  </BarChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
@@ -800,13 +924,10 @@ export function Dashboard() {
         </motion.div>
       </div>
 
-      {/* ── Row 4: Recent Sales + Low Stock ────────────────────────── */}
+      {/* ── Row 7: Recent Sales + Low Stock ────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Recent Sales Table */}
-        <motion.div
-          variants={item}
-          className="rounded-xl border border-border/60 bg-card"
-        >
+        <motion.div variants={item} className="rounded-xl border border-border/60 bg-card">
           <div className="border-b border-border/60 px-6 py-4">
             <h3 className="text-[15px] font-semibold text-foreground">
               {t('pages.dashboard.recentActivity')}
@@ -835,22 +956,15 @@ export function Dashboard() {
                 <TableRow>
                   <TableHead className="text-[13px]">Receipt #</TableHead>
                   <TableHead className="text-[13px]">Time</TableHead>
-                  <TableHead className="text-[13px] text-center">
-                    Items
-                  </TableHead>
+                  <TableHead className="text-[13px] text-center">Items</TableHead>
                   <TableHead className="text-[13px]">Payment</TableHead>
-                  <TableHead className="text-[13px] text-right">
-                    Total
-                  </TableHead>
-                  <TableHead className="text-[13px] text-center">
-                    Status
-                  </TableHead>
+                  <TableHead className="text-[13px] text-right">Total</TableHead>
+                  <TableHead className="text-[13px] text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentSales.slice(0, 8).map((sale) => {
-                  const PayIcon =
-                    paymentIcons[sale.payment_method] ?? Banknote
+                  const PayIcon = paymentIcons[sale.payment_method] ?? Banknote
                   return (
                     <TableRow key={sale.id}>
                       <TableCell className="text-[13px] font-medium font-mono">
@@ -863,10 +977,7 @@ export function Dashboard() {
                         {sale.items?.length ?? 0}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className="gap-1 text-[11px] font-medium capitalize"
-                        >
+                        <Badge variant="secondary" className="gap-1 text-[11px] font-medium capitalize">
                           <PayIcon className="h-3 w-3" />
                           {sale.payment_method}
                         </Badge>
@@ -875,16 +986,10 @@ export function Dashboard() {
                         {formatCurrency(Number(sale.total_amount))}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            sale.status === 'completed'
-                              ? 'default'
-                              : sale.status === 'refunded'
-                                ? 'outline'
-                                : 'destructive'
-                          }
-                          className="text-[11px]"
-                        >
+                        <Badge variant={
+                          sale.status === 'completed' ? 'default'
+                            : sale.status === 'refunded' ? 'outline' : 'destructive'
+                        } className="text-[11px]">
                           {sale.status}
                         </Badge>
                       </TableCell>
@@ -897,10 +1002,7 @@ export function Dashboard() {
         </motion.div>
 
         {/* Low Stock Alerts */}
-        <motion.div
-          variants={item}
-          className="rounded-xl border border-border/60 bg-card h-fit"
-        >
+        <motion.div variants={item} className="rounded-xl border border-border/60 bg-card h-fit">
           <div className="border-b border-border/60 px-6 py-4">
             <h3 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -924,40 +1026,28 @@ export function Dashboard() {
           ) : (
             <div className="divide-y divide-border/40">
               {lowStockItems.map((stockItem) => {
-                const name =
-                  stockItem.product_name ??
-                  stockItem.product?.name ??
-                  `Product #${stockItem.id}`
-                const qty =
-                  stockItem.current_stock ?? stockItem.quantity ?? 0
-                const threshold =
-                  stockItem.low_stock_threshold ??
-                  stockItem.minimum_stock ??
-                  0
+                const name = stockItem.product_name ?? stockItem.product?.name ?? `Product #${stockItem.id}`
+                const qty = stockItem.current_stock ?? stockItem.quantity ?? 0
+                const threshold = stockItem.low_stock_threshold ?? stockItem.minimum_stock ?? 0
                 const critical = qty === 0
+                const pct = threshold > 0 ? Math.min((qty / threshold) * 100, 100) : 0
 
                 return (
-                  <div
-                    key={stockItem.id}
-                    className="flex items-center justify-between px-6 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium text-foreground truncate">
-                        {name}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Threshold: {threshold}
-                      </p>
+                  <div key={stockItem.id} className="px-6 py-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[13px] font-medium text-foreground truncate flex-1">{name}</p>
+                      <span className={`text-[13px] font-bold ml-3 ${
+                        critical ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {qty}
+                      </span>
                     </div>
-                    <span
-                      className={`text-[13px] font-bold ml-3 ${
-                        critical
-                          ? 'text-red-600 dark:text-red-400'
-                          : 'text-amber-600 dark:text-amber-400'
-                      }`}
-                    >
-                      {qty}
-                    </span>
+                    <div className="relative h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                      <div className={`absolute inset-y-0 left-0 rounded-full transition-all ${
+                        critical ? 'bg-red-500' : 'bg-amber-500'
+                      }`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Threshold: {threshold}</p>
                   </div>
                 )
               })}
@@ -965,96 +1055,6 @@ export function Dashboard() {
           )}
         </motion.div>
       </div>
-
-      {/* ── Row 5: Hourly Sales ────────────────────────────────────── */}
-      <motion.div variants={item}>
-        <Card className="border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[15px] font-semibold">
-              Hourly Sales Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingCharts ? (
-              <ChartLoading />
-            ) : hourlySales.length === 0 ? (
-              <div className="flex items-center justify-center h-[160px] text-[13px] text-muted-foreground">
-                No hourly data available
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={160}>
-                <AreaChart
-                  data={hourlySales}
-                  margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="hourlyGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor={accent}
-                        stopOpacity={0.25}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={accent}
-                        stopOpacity={0.02}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.1}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    tick={axisTickStyle}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(h: number) =>
-                      `${String(h).padStart(2, '0')}:00`
-                    }
-                    interval={2}
-                  />
-                  <YAxis
-                    tick={axisTickStyle}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v: number) =>
-                      v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
-                    }
-                  />
-                  <Tooltip
-                    content={
-                      <ChartTooltip
-                        formatter={(value, _name, entry) =>
-                          `${formatCurrency(value)} (${entry.payload.count} txns)`
-                        }
-                      />
-                    }
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    name="Sales"
-                    stroke={accent}
-                    strokeWidth={2}
-                    fill="url(#hourlyGradient)"
-                    dot={false}
-                    activeDot={{ r: 4, fill: accent, strokeWidth: 2, stroke: 'var(--card)' }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
     </motion.div>
   )
 }
