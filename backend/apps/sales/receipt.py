@@ -94,7 +94,15 @@ def generate_receipt_text(sale, store, width=48):
 
     discount = Decimal(str(sale.discount_amount))
     if discount > 0:
-        lines.append(left_right("Discount", f"-{fmt(discount)}"))
+        disc_label = "Discount"
+        if sale.discount_type == 'percent':
+            disc_label = "Discount (%)"
+        lines.append(left_right(disc_label, f"-{fmt(discount)}"))
+        if sale.discount_reason:
+            reason = sale.discount_reason
+            if len(reason) > width - 4:
+                reason = reason[:width - 7] + '...'
+            lines.append(f"  ({reason})")
 
     lines.append('=' * width)
     total = Decimal(str(sale.total_amount))

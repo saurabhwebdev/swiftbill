@@ -30,7 +30,8 @@
       "revenue": "收入",
       "recentActivity": "近期活动",
       "noActivity": "暂无近期活动",
-      "noActivityDesc": "从添加商品和完成第一笔销售开始。活动记录将显示在此处。"
+      "noActivityDesc": "从添加商品和完成第一笔销售开始。活动记录将显示在此处。",
+      "discountsGiven": "已给折扣"
     },
     "products": {
       "title": "商品",
@@ -55,7 +56,9 @@
       "tax": "税费",
       "total": "合计",
       "charge": "收款",
-      "cartEmpty": "购物车为空。请添加商品以开始。"
+      "cartEmpty": "购物车为空。请添加商品以开始。",
+      "discount": "折扣",
+      "discountReasonPlaceholder": "折扣原因..."
     },
     "terminals": {
       "title": "终端",

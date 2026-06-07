@@ -53,6 +53,12 @@ class StoreSerializer(serializers.ModelSerializer):
             # Demand tracking
             'demand_tracking_enabled',
             'notify_demand_fulfilled',
+            # Discount settings
+            'discount_enabled',
+            'discount_max_percent_cashier',
+            'discount_max_percent_manager',
+            'discount_require_reason',
+            'discount_require_approval',
             # Refund settings
             'refund_enabled',
             'refund_time_limit_days',

@@ -30,7 +30,8 @@
       "revenue": "売上高",
       "recentActivity": "最近のアクティビティ",
       "noActivity": "最近のアクティビティはありません",
-      "noActivityDesc": "商品を追加して最初の販売を行いましょう。アクティビティはここに表示されます。"
+      "noActivityDesc": "商品を追加して最初の販売を行いましょう。アクティビティはここに表示されます。",
+      "discountsGiven": "適用された割引"
     },
     "products": {
       "title": "商品",
@@ -55,7 +56,9 @@
       "tax": "税",
       "total": "合計",
       "charge": "会計する",
-      "cartEmpty": "カートが空です。商品を追加してください。"
+      "cartEmpty": "カートが空です。商品を追加してください。",
+      "discount": "割引",
+      "discountReasonPlaceholder": "割引の理由..."
     },
     "terminals": {
       "title": "端末",

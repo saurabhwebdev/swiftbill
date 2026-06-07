@@ -13,6 +13,7 @@ import {
   CreditCard,
   Smartphone,
   TrendingUp,
+  Tag,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -406,6 +407,17 @@ export function Dashboard() {
             subtext: loadingStats ? null : `${refundCount} refund${refundCount !== 1 ? 's' : ''}`,
             icon: AlertTriangle,
             accent: true,
+          },
+        ]
+      : []),
+    ...(Number(saleSummary?.total_discount ?? 0) > 0
+      ? [
+          {
+            label: t('pages.dashboard.discountsGiven', 'Discounts Given'),
+            value: loadingStats ? null : formatCurrency(Number(saleSummary?.total_discount ?? 0)),
+            subtext: null as string | null,
+            icon: Tag,
+            accent: false,
           },
         ]
       : []),

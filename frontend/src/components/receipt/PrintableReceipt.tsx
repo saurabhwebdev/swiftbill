@@ -17,6 +17,8 @@ interface PrintableReceiptProps {
   subtotal: number
   taxAmount: number
   discountAmount: number
+  discountType?: 'flat' | 'percent'
+  discountReason?: string
   total: number
   paymentMethod: string
   store: Store | null
@@ -24,7 +26,7 @@ interface PrintableReceiptProps {
 }
 
 export const PrintableReceipt = forwardRef<HTMLDivElement, PrintableReceiptProps>(
-  ({ receiptNumber, items, subtotal, taxAmount, discountAmount, total, paymentMethod, store, date }, ref) => {
+  ({ receiptNumber, items, subtotal, taxAmount, discountAmount, discountType, discountReason, total, paymentMethod, store, date }, ref) => {
     const storeName = store?.name || 'Store'
     const storeAddress = store?.address || ''
     const cityLine = [store?.city, store?.state, store?.zip_code].filter(Boolean).join(', ')
@@ -127,10 +129,15 @@ export const PrintableReceipt = forwardRef<HTMLDivElement, PrintableReceiptProps
           )}
 
           {discountAmount > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Discount</span>
-              <span>-{fmt(discountAmount)}</span>
-            </div>
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{discountType === 'percent' ? 'Discount (%)' : 'Discount'}</span>
+                <span>-{fmt(discountAmount)}</span>
+              </div>
+              {discountReason && (
+                <div style={{ fontSize: '10px', color: '#666' }}>({discountReason})</div>
+              )}
+            </>
           )}
 
           <div style={{ borderTop: '1px solid #000', marginTop: '6px', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px' }}>

@@ -24,6 +24,8 @@ import {
   Monitor,
   Clock,
   LogOut,
+  Percent,
+  Tag,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -32,6 +34,7 @@ import api from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { useHotkeys } from '@/hooks/use-hotkeys'
 import { useBarcodeScan } from '@/hooks/use-barcode-scan'
+import { useAuthStore } from '@/stores/authStore'
 import { PrintableReceipt } from '@/components/receipt/PrintableReceipt'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -92,6 +95,7 @@ type PaymentMethod = 'cash' | 'card' | 'mobile'
 export function Sales() {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const user = useAuthStore((s) => s.user)
 
   // Store config
   const [store, setStore] = useState<Store | null>(null)
@@ -107,6 +111,8 @@ export function Sales() {
   // Cart
   const [cart, setCart] = useState<CartItem[]>([])
   const [overallDiscount, setOverallDiscount] = useState(0)
+  const [discountType, setDiscountType] = useState<'flat' | 'percent'>('flat')
+  const [discountReason, setDiscountReason] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [checkingOut, setCheckingOut] = useState(false)
 
@@ -177,6 +183,7 @@ export function Sales() {
   const [sessionDuration, setSessionDuration] = useState('')
 
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const discountInputRef = useRef<HTMLInputElement>(null)
   const receiptRef = useRef<HTMLDivElement>(null)
   const currency = store?.currency === 'INR' ? '₹' : store?.currency === 'USD' ? '$' : store?.currency === 'EUR' ? '€' : store?.currency === 'GBP' ? '£' : store?.currency || '₹'
 
@@ -408,6 +415,8 @@ export function Sales() {
   const clearCart = () => {
     setCart([])
     setOverallDiscount(0)
+    setDiscountType('flat')
+    setDiscountReason('')
   }
 
   // Cart calculations
@@ -436,9 +445,15 @@ export function Sales() {
   const cgst = totalGst / 2
   const sgst = totalGst / 2
 
-  const grandTotal = gstInclusive
-    ? Math.max(0, cart.reduce((sum, c) => sum + c.price * c.quantity - c.discount, 0) - overallDiscount)
-    : Math.max(0, subtotal + totalGst - overallDiscount)
+  const baseForDiscount = gstInclusive
+    ? cart.reduce((sum, c) => sum + c.price * c.quantity - c.discount, 0)
+    : subtotal + totalGst
+
+  const actualDiscount = discountType === 'percent'
+    ? baseForDiscount * overallDiscount / 100
+    : overallDiscount
+
+  const grandTotal = Math.max(0, baseForDiscount - actualDiscount)
 
   // Checkout
   const handleCheckout = async () => {
@@ -454,6 +469,8 @@ export function Sales() {
         })),
         payment_method: paymentMethod,
         discount_amount: overallDiscount,
+        discount_type: discountType,
+        discount_reason: discountReason,
         notes: '',
         terminal: activeTerminal?.id || null,
       }
@@ -728,6 +745,7 @@ export function Sales() {
   // POS keyboard shortcuts
   useHotkeys({
     'f2': () => searchInputRef.current?.focus(),
+    'f3': () => discountInputRef.current?.focus(),
     'f4': () => clearCart(),
     'f9': () => setPaymentMethod('cash'),
     'f10': () => setPaymentMethod('card'),
@@ -1341,20 +1359,119 @@ export function Sales() {
                 </>
               )}
 
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="text-muted-foreground">Discount</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground/60 text-[11px]">{currency}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={overallDiscount || ''}
-                    onChange={(e) => setOverallDiscount(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
-                    className="h-6 w-16 rounded border border-border/50 bg-background px-1.5 text-[12px] text-foreground text-right outline-none focus:border-[hsl(var(--primary)/0.4)] tabular-nums"
-                  />
+              {store?.discount_enabled !== false && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">{t('pages.sales.discount', 'Discount')}</span>
+                      <kbd className="text-[8px] font-mono text-muted-foreground/40">F3</kbd>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="flex rounded-md border border-border/50 overflow-hidden">
+                        <button
+                          onClick={() => setDiscountType('flat')}
+                          className={`px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                            discountType === 'flat'
+                              ? 'bg-[hsl(var(--primary))] text-white'
+                              : 'bg-background text-muted-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          {currency}
+                        </button>
+                        <button
+                          onClick={() => setDiscountType('percent')}
+                          className={`px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                            discountType === 'percent'
+                              ? 'bg-[hsl(var(--primary))] text-white'
+                              : 'bg-background text-muted-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          <Percent className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <input
+                        ref={discountInputRef}
+                        type="number"
+                        min="0"
+                        max={discountType === 'percent' ? 100 : undefined}
+                        value={overallDiscount || ''}
+                        onChange={(e) => {
+                          let val = parseFloat(e.target.value) || 0
+                          if (discountType === 'percent') val = Math.min(100, val)
+                          const userRole = user?.role || 'cashier'
+                          if (store && discountType === 'percent' && (userRole === 'cashier' || userRole === 'manager')) {
+                            const maxPct = userRole === 'cashier'
+                              ? parseFloat(String(store.discount_max_percent_cashier))
+                              : parseFloat(String(store.discount_max_percent_manager))
+                            if (val > maxPct) {
+                              toast({ title: `Max discount for ${userRole}: ${maxPct}%`, variant: 'destructive' })
+                              val = maxPct
+                            }
+                          }
+                          if (store && discountType === 'flat' && baseForDiscount > 0 && (userRole === 'cashier' || userRole === 'manager')) {
+                            const pct = (val / baseForDiscount) * 100
+                            const maxPct = userRole === 'cashier'
+                              ? parseFloat(String(store.discount_max_percent_cashier))
+                              : parseFloat(String(store.discount_max_percent_manager))
+                            if (pct > maxPct) {
+                              toast({ title: `Max discount for ${userRole}: ${maxPct}%`, variant: 'destructive' })
+                              val = baseForDiscount * maxPct / 100
+                            }
+                          }
+                          setOverallDiscount(val)
+                        }}
+                        placeholder="0"
+                        className="h-6 w-16 rounded border border-border/50 bg-background px-1.5 text-[12px] text-foreground text-right outline-none focus:border-[hsl(var(--primary)/0.4)] tabular-nums"
+                      />
+                    </div>
+                  </div>
+
+                  {discountType === 'percent' && (
+                    <div className="flex items-center gap-1 justify-end">
+                      {[5, 10, 15, 20].map((pct) => {
+                        const userRole = user?.role || 'cashier'
+                        const maxPct = (userRole === 'cashier' || userRole === 'manager') && store
+                          ? parseFloat(String(userRole === 'cashier' ? store.discount_max_percent_cashier : store.discount_max_percent_manager))
+                          : 100
+                        const disabled = pct > maxPct
+                        return (
+                          <button
+                            key={pct}
+                            disabled={disabled}
+                            onClick={() => setOverallDiscount(pct)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                              overallDiscount === pct
+                                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]'
+                                : disabled
+                                  ? 'border-border/30 text-muted-foreground/30 cursor-not-allowed'
+                                  : 'border-border/50 text-muted-foreground hover:border-border hover:bg-muted/30'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {store?.discount_require_reason && overallDiscount > 0 && (
+                    <input
+                      type="text"
+                      value={discountReason}
+                      onChange={(e) => setDiscountReason(e.target.value)}
+                      placeholder={t('pages.sales.discountReasonPlaceholder', 'Reason for discount...')}
+                      className="h-6 w-full rounded border border-border/50 bg-background px-2 text-[11px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.4)]"
+                    />
+                  )}
+
+                  {actualDiscount > 0 && discountType === 'percent' && (
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground/70">
+                      <span>{overallDiscount}% off</span>
+                      <span>-{formatPrice(actualDiscount)}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               <div className="h-px bg-border/80 my-1" />
 
@@ -1490,11 +1607,21 @@ export function Sales() {
 
                 {/* Discount */}
                 {successData.discount_amount > 0 && (
-                  <div className="flex items-center justify-between text-[12px]">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span className="text-foreground font-medium">
-                      -{formatPrice(successData.discount_amount)}
-                    </span>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        {discountType === 'percent' ? `Discount (${overallDiscount}%)` : 'Discount'}
+                      </span>
+                      <span className="text-foreground font-medium">
+                        -{formatPrice(successData.discount_amount)}
+                      </span>
+                    </div>
+                    {discountReason && (
+                      <div className="text-[11px] text-muted-foreground/70 pl-4">
+                        {discountReason}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1530,6 +1657,8 @@ export function Sales() {
                   subtotal={successData.items.reduce((s, i) => s + i.subtotal, 0)}
                   taxAmount={successData.tax_amount}
                   discountAmount={successData.discount_amount}
+                  discountType={discountType}
+                  discountReason={discountReason}
                   total={successData.total}
                   paymentMethod={successData.payment_method}
                   store={store}

@@ -122,6 +122,13 @@ class Store(models.Model):
     demand_tracking_enabled = models.BooleanField(default=True, help_text='Enable customer demand tracking')
     notify_demand_fulfilled = models.BooleanField(default=True, help_text='Send email to customers when requested product arrives')
 
+    # Discount settings
+    discount_enabled = models.BooleanField(default=True, help_text='Allow discounts on sales')
+    discount_max_percent_cashier = models.DecimalField(max_digits=5, decimal_places=2, default=10, help_text='Max discount % a cashier can give')
+    discount_max_percent_manager = models.DecimalField(max_digits=5, decimal_places=2, default=50, help_text='Max discount % a manager can give')
+    discount_require_reason = models.BooleanField(default=False, help_text='Require reason for discounts')
+    discount_require_approval = models.BooleanField(default=False, help_text='Cashier discounts need manager approval')
+
     # Refund settings
     refund_enabled = models.BooleanField(default=True, help_text='Allow refunds')
     refund_time_limit_days = models.PositiveIntegerField(default=30, help_text='Days after sale within which refund is allowed, 0 for unlimited')

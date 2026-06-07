@@ -48,7 +48,7 @@ export function Sidebar() {
   return (
     <motion.aside
       className={cn(
-        'flex h-screen flex-col border-r border-border/60 bg-[hsl(var(--color-surface-raised))] transition-[width] duration-200',
+        'flex h-screen shrink-0 flex-col border-r border-border/60 bg-[hsl(var(--color-surface-raised))] transition-[width] duration-200',
         collapsed ? 'w-[68px]' : 'w-[260px]'
       )}
     >

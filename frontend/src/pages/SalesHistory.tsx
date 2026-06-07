@@ -85,6 +85,8 @@ interface SaleData {
   cashier_name: string
   total_amount: string
   discount_amount: string
+  discount_type?: 'flat' | 'percent'
+  discount_reason?: string
   tax_amount: string
   payment_method: 'cash' | 'card' | 'mobile'
   status: 'completed' | 'refunded' | 'voided'
@@ -795,9 +797,18 @@ export function SalesHistory() {
                   </div>
                 )}
                 {detailDiscount > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span className="text-foreground font-medium">-{formatPrice(detailDiscount)}</span>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        {selectedSale?.discount_type === 'percent' ? 'Discount (%)' : 'Discount'}
+                      </span>
+                      <span className="text-foreground font-medium">-{formatPrice(detailDiscount)}</span>
+                    </div>
+                    {selectedSale?.discount_reason && (
+                      <div className="text-[11px] text-muted-foreground/70 italic">
+                        Reason: {selectedSale.discount_reason}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="h-px bg-border/60" />

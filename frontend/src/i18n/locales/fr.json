@@ -30,7 +30,8 @@
       "revenue": "Chiffre d'affaires",
       "recentActivity": "Activité récente",
       "noActivity": "Aucune activité récente",
-      "noActivityDesc": "Commencez par ajouter des produits et réaliser votre première vente. L'activité apparaîtra ici."
+      "noActivityDesc": "Commencez par ajouter des produits et réaliser votre première vente. L'activité apparaîtra ici.",
+      "discountsGiven": "Remises accordées"
     },
     "products": {
       "title": "Produits",
@@ -55,7 +56,9 @@
       "tax": "Taxe",
       "total": "Total",
       "charge": "Encaisser",
-      "cartEmpty": "Le panier est vide. Ajoutez des produits pour commencer."
+      "cartEmpty": "Le panier est vide. Ajoutez des produits pour commencer.",
+      "discount": "Remise",
+      "discountReasonPlaceholder": "Raison de la remise..."
     },
     "terminals": {
       "title": "Terminaux",

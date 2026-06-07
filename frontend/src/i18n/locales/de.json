@@ -30,7 +30,8 @@
       "revenue": "Umsatz",
       "recentActivity": "Letzte Aktivität",
       "noActivity": "Keine aktuelle Aktivität",
-      "noActivityDesc": "Beginnen Sie, indem Sie Produkte hinzufügen und Ihren ersten Verkauf tätigen. Aktivitäten werden hier angezeigt."
+      "noActivityDesc": "Beginnen Sie, indem Sie Produkte hinzufügen und Ihren ersten Verkauf tätigen. Aktivitäten werden hier angezeigt.",
+      "discountsGiven": "Gewährte Rabatte"
     },
     "products": {
       "title": "Produkte",
@@ -55,7 +56,9 @@
       "tax": "Steuer",
       "total": "Gesamt",
       "charge": "Kassieren",
-      "cartEmpty": "Der Warenkorb ist leer. Fügen Sie Produkte hinzu, um zu beginnen."
+      "cartEmpty": "Der Warenkorb ist leer. Fügen Sie Produkte hinzu, um zu beginnen.",
+      "discount": "Rabatt",
+      "discountReasonPlaceholder": "Grund für den Rabatt..."
     },
     "terminals": {
       "title": "Terminals",

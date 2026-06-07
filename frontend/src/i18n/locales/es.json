@@ -30,7 +30,8 @@
       "revenue": "Ingresos",
       "recentActivity": "Actividad reciente",
       "noActivity": "Sin actividad reciente",
-      "noActivityDesc": "Empieza agregando productos y realizando tu primera venta. La actividad aparecerá aquí."
+      "noActivityDesc": "Empieza agregando productos y realizando tu primera venta. La actividad aparecerá aquí.",
+      "discountsGiven": "Descuentos otorgados"
     },
     "products": {
       "title": "Productos",
@@ -55,7 +56,9 @@
       "tax": "Impuesto",
       "total": "Total",
       "charge": "Cobrar",
-      "cartEmpty": "El carrito está vacío. Agrega productos para comenzar."
+      "cartEmpty": "El carrito está vacío. Agrega productos para comenzar.",
+      "discount": "Descuento",
+      "discountReasonPlaceholder": "Motivo del descuento..."
     },
     "terminals": {
       "title": "Terminales",

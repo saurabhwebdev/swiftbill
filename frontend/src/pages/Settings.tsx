@@ -837,6 +837,104 @@ function PaymentsSection({ store, loading, patchStore }: {
           </Button>
         </CardContent>
       </Card>
+
+      {/* ── Discount Settings ── */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="text-[15px] font-semibold">Discount Settings</CardTitle>
+          <CardDescription className="text-[13px]">Configure discount rules and limits per role</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[13px] font-medium text-foreground">Enable Discounts</p>
+              <p className="text-[12px] text-muted-foreground">Allow discounts to be applied on sales</p>
+            </div>
+            <button
+              onClick={() => patchStore({ discount_enabled: !store?.discount_enabled })}
+              className={cn(
+                'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                store?.discount_enabled ? 'bg-[hsl(var(--primary))]' : 'bg-foreground/15'
+              )}
+            >
+              <span className={cn(
+                'inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm',
+                store?.discount_enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              )} />
+            </button>
+          </div>
+
+          {store?.discount_enabled && (
+            <>
+              <Separator />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">Max Discount % (Cashier)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={store?.discount_max_percent_cashier ?? 10}
+                    onChange={(e) => patchStore({ discount_max_percent_cashier: e.target.value })}
+                    className="h-9 text-[13px]"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Maximum discount a cashier can apply</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">Max Discount % (Manager)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={store?.discount_max_percent_manager ?? 50}
+                    onChange={(e) => patchStore({ discount_max_percent_manager: e.target.value })}
+                    className="h-9 text-[13px]"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Maximum discount a manager can apply</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[13px] font-medium text-foreground">Require Reason</p>
+                  <p className="text-[12px] text-muted-foreground">Require staff to provide a reason for discounts</p>
+                </div>
+                <button
+                  onClick={() => patchStore({ discount_require_reason: !store?.discount_require_reason })}
+                  className={cn(
+                    'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                    store?.discount_require_reason ? 'bg-[hsl(var(--primary))]' : 'bg-foreground/15'
+                  )}
+                >
+                  <span className={cn(
+                    'inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm',
+                    store?.discount_require_reason ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  )} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[13px] font-medium text-foreground">Require Approval</p>
+                  <p className="text-[12px] text-muted-foreground">Cashier discounts need manager/owner approval</p>
+                </div>
+                <button
+                  onClick={() => patchStore({ discount_require_approval: !store?.discount_require_approval })}
+                  className={cn(
+                    'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                    store?.discount_require_approval ? 'bg-[hsl(var(--primary))]' : 'bg-foreground/15'
+                  )}
+                >
+                  <span className={cn(
+                    'inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm',
+                    store?.discount_require_approval ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  )} />
+                </button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -30,7 +30,8 @@
       "revenue": "Revenue",
       "recentActivity": "Recent Activity",
       "noActivity": "No recent activity",
-      "noActivityDesc": "Start by adding products and making your first sale. Activity will appear here."
+      "noActivityDesc": "Start by adding products and making your first sale. Activity will appear here.",
+      "discountsGiven": "Discounts Given"
     },
     "products": {
       "title": "Products",
@@ -55,7 +56,9 @@
       "tax": "Tax",
       "total": "Total",
       "charge": "Charge",
-      "cartEmpty": "Cart is empty. Add products to begin."
+      "cartEmpty": "Cart is empty. Add products to begin.",
+      "discount": "Discount",
+      "discountReasonPlaceholder": "Reason for discount..."
     },
     "terminals": {
       "title": "Terminals",

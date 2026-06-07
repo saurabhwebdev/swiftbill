@@ -59,6 +59,11 @@ export interface Store {
   gst_composition_scheme: boolean;
   gst_default_slab: string;
   gst_inclusive_pricing: boolean;
+  discount_enabled: boolean;
+  discount_max_percent_cashier: string | number;
+  discount_max_percent_manager: string | number;
+  discount_require_reason: boolean;
+  discount_require_approval: boolean;
   refund_enabled: boolean;
   refund_time_limit_days: number;
   refund_require_reason: boolean;
@@ -169,6 +174,8 @@ export interface Sale {
   subtotal: number;
   tax_total: number;
   discount_total: number;
+  discount_type?: 'flat' | 'percent';
+  discount_reason?: string;
   total: number;
   payment_method: 'cash' | 'card' | 'mobile' | 'mixed';
   payment_status: 'completed' | 'pending' | 'refunded';

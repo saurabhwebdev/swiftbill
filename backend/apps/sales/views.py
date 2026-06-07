@@ -72,6 +72,17 @@ class SaleViewSet(viewsets.ModelViewSet):
         if not items_data:
             return Response({'error': 'Cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Discount validation
+        discount_amount = Decimal(str(data.get('discount_amount', 0)))
+        discount_type = data.get('discount_type', 'flat')
+        discount_reason = data.get('discount_reason', '')
+
+        if discount_amount > 0 and not store.discount_enabled:
+            return Response({'error': 'Discounts are not enabled for this store.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if discount_amount > 0 and store.discount_require_reason and not discount_reason.strip():
+            return Response({'error': 'A reason is required for discounts.'}, status=status.HTTP_400_BAD_REQUEST)
+
         with transaction.atomic():
             subtotal = Decimal('0')
             tax_total = Decimal('0')
@@ -118,15 +129,31 @@ class SaleViewSet(viewsets.ModelViewSet):
                     created_by=request.user,
                 )
 
-            discount_amount = Decimal(str(data.get('discount_amount', 0)))
-            total = subtotal + tax_total - discount_amount
+            # Calculate actual discount amount
+            if discount_type == 'percent' and discount_amount > 0:
+                actual_discount = (subtotal + tax_total) * discount_amount / Decimal('100')
+            else:
+                actual_discount = discount_amount
+
+            # Role-based discount limit validation
+            if actual_discount > 0 and store.discount_enabled:
+                discount_pct = (actual_discount / (subtotal + tax_total) * Decimal('100')) if (subtotal + tax_total) > 0 else Decimal('0')
+                user_role = request.user.role
+                if user_role == 'cashier' and discount_pct > store.discount_max_percent_cashier:
+                    return Response({'error': f'Discount exceeds your limit of {store.discount_max_percent_cashier}%.'}, status=status.HTTP_400_BAD_REQUEST)
+                if user_role == 'manager' and discount_pct > store.discount_max_percent_manager:
+                    return Response({'error': f'Discount exceeds your limit of {store.discount_max_percent_manager}%.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            total = subtotal + tax_total - actual_discount
 
             sale = Sale.objects.create(
                 store=store,
                 cashier=request.user,
                 terminal_id=data.get('terminal'),
                 total_amount=total,
-                discount_amount=discount_amount,
+                discount_amount=actual_discount,
+                discount_type=discount_type,
+                discount_reason=discount_reason,
                 tax_amount=tax_total,
                 payment_method=data['payment_method'],
                 status='completed',

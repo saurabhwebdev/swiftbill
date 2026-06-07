@@ -21,8 +21,14 @@ class Sale(models.Model):
     terminal = models.ForeignKey(Terminal, on_delete=models.SET_NULL, null=True, blank=True, related_name='sales')
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sales')
     receipt_number = models.CharField(max_length=20, unique=True, blank=True)
+    DISCOUNT_TYPES = (
+        ('flat', 'Flat Amount'),
+        ('percent', 'Percentage'),
+    )
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_type = models.CharField(max_length=10, choices=DISCOUNT_TYPES, default='flat', blank=True)
+    discount_reason = models.CharField(max_length=255, blank=True)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cash')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='completed')
