@@ -27,6 +27,7 @@ import {
   Percent,
   Tag,
   Mail,
+  User,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -1496,31 +1497,69 @@ export function Sales() {
               </div>
             </div>
 
-            {/* Customer info for email receipt */}
-            <div className="px-4 pb-2">
-              <details className="group">
-                <summary className="flex items-center gap-1.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground transition-colors select-none list-none">
-                  <Mail className="h-3 w-3" />
-                  <span>{customerEmail ? `Receipt → ${customerEmail}` : t('pages.sales.emailReceipt', 'Email receipt to customer')}</span>
-                  <ChevronDown className="h-3 w-3 ml-auto transition-transform group-open:rotate-180" />
-                </summary>
-                <div className="mt-2 space-y-1.5">
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={t('pages.sales.customerName', 'Customer name')}
-                    className="h-7 w-full rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.4)]"
-                  />
-                  <input
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder={t('pages.sales.customerEmail', 'customer@email.com')}
-                    className="h-7 w-full rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.4)]"
-                  />
+            {/* Customer Details (optional) */}
+            <div className="px-3 pb-2">
+              <div className="rounded-lg border border-border/50 bg-muted/20 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('pos-customer-section')
+                    if (el) el.classList.toggle('hidden')
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/30 transition-colors"
+                >
+                  <div className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                    customerEmail ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-muted/60'
+                  }`}>
+                    {customerEmail ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-foreground">
+                      {customerName || t('pages.sales.customerName', 'Customer Details')}
+                      <span className="ml-1.5 text-[10px] font-normal text-muted-foreground/70">({t('common.optional', 'optional')})</span>
+                    </p>
+                    {customerEmail ? (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 truncate">
+                        <Mail className="h-2.5 w-2.5 shrink-0" />
+                        Receipt will be emailed to {customerEmail}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground/60">
+                        Add email to send receipt automatically
+                      </p>
+                    )}
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </button>
+                <div id="pos-customer-section" className={customerName || customerEmail ? '' : 'hidden'}>
+                  <div className="px-3 pb-3 space-y-1.5 border-t border-border/30 pt-2">
+                    <div className="relative">
+                      <User className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder={t('pages.sales.customerName', 'Customer name')}
+                        className="h-8 w-full rounded-md border border-border/50 bg-background pl-7 pr-2 text-[12px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.5)] focus:ring-1 focus:ring-[hsl(var(--primary)/0.2)] transition-all"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Mail className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder={t('pages.sales.customerEmail', 'customer@email.com')}
+                        className="h-8 w-full rounded-md border border-border/50 bg-background pl-7 pr-2 text-[12px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.5)] focus:ring-1 focus:ring-[hsl(var(--primary)/0.2)] transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </details>
+              </div>
             </div>
 
             {/* Payment + Charge */}
