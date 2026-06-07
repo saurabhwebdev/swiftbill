@@ -58,7 +58,10 @@
       "charge": "会計する",
       "cartEmpty": "カートが空です。商品を追加してください。",
       "discount": "割引",
-      "discountReasonPlaceholder": "割引の理由..."
+      "discountReasonPlaceholder": "割引の理由...",
+      "emailReceipt": "レシートをメールで送信",
+      "customerName": "お客様名",
+      "customerEmail": "customer@email.com"
     },
     "terminals": {
       "title": "端末",

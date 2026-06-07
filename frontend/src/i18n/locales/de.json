@@ -58,7 +58,10 @@
       "charge": "Kassieren",
       "cartEmpty": "Der Warenkorb ist leer. Fügen Sie Produkte hinzu, um zu beginnen.",
       "discount": "Rabatt",
-      "discountReasonPlaceholder": "Grund für den Rabatt..."
+      "discountReasonPlaceholder": "Grund für den Rabatt...",
+      "emailReceipt": "Beleg per E-Mail senden",
+      "customerName": "Kundenname",
+      "customerEmail": "kunde@email.com"
     },
     "terminals": {
       "title": "Terminals",

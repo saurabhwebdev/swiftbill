@@ -58,7 +58,10 @@
       "charge": "تحصيل",
       "cartEmpty": "السلة فارغة. أضف منتجات للبدء.",
       "discount": "خصم",
-      "discountReasonPlaceholder": "سبب الخصم..."
+      "discountReasonPlaceholder": "سبب الخصم...",
+      "emailReceipt": "إرسال الإيصال بالبريد الإلكتروني",
+      "customerName": "اسم العميل",
+      "customerEmail": "customer@email.com"
     },
     "terminals": {
       "title": "الأجهزة",

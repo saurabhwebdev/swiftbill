@@ -32,6 +32,8 @@ class Sale(models.Model):
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cash')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='completed')
+    customer_name = models.CharField(max_length=100, blank=True)
+    customer_email = models.EmailField(blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

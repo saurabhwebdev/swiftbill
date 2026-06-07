@@ -58,7 +58,10 @@
       "charge": "收款",
       "cartEmpty": "购物车为空。请添加商品以开始。",
       "discount": "折扣",
-      "discountReasonPlaceholder": "折扣原因..."
+      "discountReasonPlaceholder": "折扣原因...",
+      "emailReceipt": "通过电子邮件发送收据",
+      "customerName": "客户姓名",
+      "customerEmail": "customer@email.com"
     },
     "terminals": {
       "title": "终端",

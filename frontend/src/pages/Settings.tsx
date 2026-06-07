@@ -736,8 +736,8 @@ function PaymentsSection({ store, loading, patchStore }: {
         </CardContent>
       </Card>
 
-      {/* UPI Configuration */}
-      <Card className="border-border/60 shadow-none mt-6">
+      {/* UPI Configuration — only when mobile payment enabled */}
+      {form.payment_mobile && <Card className="border-border/60 shadow-none mt-6">
         <CardHeader className="pb-4">
           <CardTitle className="text-[14px] font-semibold">UPI Configuration</CardTitle>
           <CardDescription className="text-[12px]">Configure UPI payments for mobile/QR code checkout</CardDescription>
@@ -836,7 +836,7 @@ function PaymentsSection({ store, loading, patchStore }: {
             Save UPI Settings
           </Button>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* ── Discount Settings ── */}
       <Card className="border-border/60">

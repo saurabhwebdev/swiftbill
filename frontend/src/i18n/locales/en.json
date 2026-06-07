@@ -58,7 +58,10 @@
       "charge": "Charge",
       "cartEmpty": "Cart is empty. Add products to begin.",
       "discount": "Discount",
-      "discountReasonPlaceholder": "Reason for discount..."
+      "discountReasonPlaceholder": "Reason for discount...",
+      "emailReceipt": "Email receipt to customer",
+      "customerName": "Customer name",
+      "customerEmail": "customer@email.com"
     },
     "terminals": {
       "title": "Terminals",

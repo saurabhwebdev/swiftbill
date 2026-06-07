@@ -157,6 +157,8 @@ class SaleViewSet(viewsets.ModelViewSet):
                 tax_amount=tax_total,
                 payment_method=data['payment_method'],
                 status='completed',
+                customer_name=data.get('customer_name', ''),
+                customer_email=data.get('customer_email', ''),
                 notes=data.get('notes', ''),
             )
 
@@ -167,6 +169,11 @@ class SaleViewSet(viewsets.ModelViewSet):
             if terminal_obj and data['payment_method'] == 'cash':
                 terminal_obj.cash_balance += total
                 terminal_obj.save(update_fields=['cash_balance'])
+
+        # Send receipt email to customer (non-blocking)
+        if sale.customer_email:
+            from .emails import send_receipt_email_async
+            send_receipt_email_async(sale, store)
 
         return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
 

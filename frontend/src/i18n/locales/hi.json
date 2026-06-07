@@ -58,7 +58,10 @@
       "charge": "चार्ज करें",
       "cartEmpty": "कार्ट खाली है। शुरू करने के लिए उत्पाद जोड़ें।",
       "discount": "छूट",
-      "discountReasonPlaceholder": "छूट का कारण..."
+      "discountReasonPlaceholder": "छूट का कारण...",
+      "emailReceipt": "ग्राहक को रसीद ईमेल करें",
+      "customerName": "ग्राहक का नाम",
+      "customerEmail": "customer@email.com"
     },
     "terminals": {
       "title": "टर्मिनल",

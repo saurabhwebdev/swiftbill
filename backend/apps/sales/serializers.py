@@ -46,7 +46,7 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'receipt_number', 'store', 'terminal', 'cashier', 'cashier_name',
             'total_amount', 'discount_amount', 'discount_type', 'discount_reason', 'tax_amount',
-            'payment_method', 'status', 'notes', 'created_at', 'items', 'refunds',
+            'payment_method', 'status', 'customer_name', 'customer_email', 'notes', 'created_at', 'items', 'refunds',
         ]
         read_only_fields = ['id', 'receipt_number', 'created_at', 'store', 'cashier']
 
@@ -69,5 +69,7 @@ class CheckoutSerializer(serializers.Serializer):
     discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount_type = serializers.ChoiceField(choices=['flat', 'percent'], default='flat', required=False)
     discount_reason = serializers.CharField(required=False, default='', allow_blank=True)
+    customer_name = serializers.CharField(required=False, default='', allow_blank=True)
+    customer_email = serializers.EmailField(required=False, default='', allow_blank=True)
     notes = serializers.CharField(required=False, default='', allow_blank=True)
     terminal = serializers.IntegerField(required=False, allow_null=True, default=None)

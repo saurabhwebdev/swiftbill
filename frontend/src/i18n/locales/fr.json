@@ -58,7 +58,10 @@
       "charge": "Encaisser",
       "cartEmpty": "Le panier est vide. Ajoutez des produits pour commencer.",
       "discount": "Remise",
-      "discountReasonPlaceholder": "Raison de la remise..."
+      "discountReasonPlaceholder": "Raison de la remise...",
+      "emailReceipt": "Envoyer le reçu par email",
+      "customerName": "Nom du client",
+      "customerEmail": "client@email.com"
     },
     "terminals": {
       "title": "Terminaux",

@@ -26,6 +26,7 @@ import {
   LogOut,
   Percent,
   Tag,
+  Mail,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -113,6 +114,8 @@ export function Sales() {
   const [overallDiscount, setOverallDiscount] = useState(0)
   const [discountType, setDiscountType] = useState<'flat' | 'percent'>('flat')
   const [discountReason, setDiscountReason] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [customerEmail, setCustomerEmail] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [checkingOut, setCheckingOut] = useState(false)
 
@@ -191,7 +194,13 @@ export function Sales() {
   useEffect(() => {
     api
       .get('accounts/stores/my_store/')
-      .then((res) => setStore(res.data))
+      .then((res) => {
+        setStore(res.data)
+        const s = res.data
+        if (s.payment_cash) setPaymentMethod('cash')
+        else if (s.payment_card) setPaymentMethod('card')
+        else if (s.payment_mobile) setPaymentMethod('mobile')
+      })
       .catch(() => {})
   }, [])
 
@@ -417,6 +426,8 @@ export function Sales() {
     setOverallDiscount(0)
     setDiscountType('flat')
     setDiscountReason('')
+    setCustomerName('')
+    setCustomerEmail('')
   }
 
   // Cart calculations
@@ -471,6 +482,8 @@ export function Sales() {
         discount_amount: overallDiscount,
         discount_type: discountType,
         discount_reason: discountReason,
+        customer_name: customerName,
+        customer_email: customerEmail,
         notes: '',
         terminal: activeTerminal?.id || null,
       }
@@ -747,9 +760,9 @@ export function Sales() {
     'f2': () => searchInputRef.current?.focus(),
     'f3': () => discountInputRef.current?.focus(),
     'f4': () => clearCart(),
-    'f9': () => setPaymentMethod('cash'),
-    'f10': () => setPaymentMethod('card'),
-    'f11': () => setPaymentMethod('mobile'),
+    'f9': () => { if (store?.payment_cash !== false) setPaymentMethod('cash') },
+    'f10': () => { if (store?.payment_card) setPaymentMethod('card') },
+    'f11': () => { if (store?.payment_mobile) setPaymentMethod('mobile') },
     'f12': () => { if (cart.length > 0 && !checkingOut) handleCheckout() },
     'escape': () => { if (successData) handleNewSale(); if (demandOpen) setDemandOpen(false) },
   }, [cart, checkingOut, successData, demandOpen, paymentMethod])
@@ -1483,17 +1496,50 @@ export function Sales() {
               </div>
             </div>
 
+            {/* Customer info for email receipt */}
+            <div className="px-4 pb-2">
+              <details className="group">
+                <summary className="flex items-center gap-1.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground transition-colors select-none list-none">
+                  <Mail className="h-3 w-3" />
+                  <span>{customerEmail ? `Receipt → ${customerEmail}` : t('pages.sales.emailReceipt', 'Email receipt to customer')}</span>
+                  <ChevronDown className="h-3 w-3 ml-auto transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-2 space-y-1.5">
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder={t('pages.sales.customerName', 'Customer name')}
+                    className="h-7 w-full rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.4)]"
+                  />
+                  <input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder={t('pages.sales.customerEmail', 'customer@email.com')}
+                    className="h-7 w-full rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:border-[hsl(var(--primary)/0.4)]"
+                  />
+                </div>
+              </details>
+            </div>
+
             {/* Payment + Charge */}
             <div className="px-3 pb-3 space-y-2">
               {/* Payment method */}
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className={`grid gap-1.5 ${
+                [store?.payment_cash !== false, store?.payment_card, store?.payment_mobile].filter(Boolean).length === 2
+                  ? 'grid-cols-2'
+                  : [store?.payment_cash !== false, store?.payment_card, store?.payment_mobile].filter(Boolean).length === 1
+                    ? 'grid-cols-1'
+                    : 'grid-cols-3'
+              }`}>
                 {(
                   [
-                    { key: 'cash' as const, icon: Banknote, label: 'Cash', hint: 'F9' },
-                    { key: 'card' as const, icon: CreditCard, label: 'Card', hint: 'F10' },
-                    { key: 'mobile' as const, icon: Smartphone, label: 'UPI', hint: 'F11' },
+                    { key: 'cash' as const, icon: Banknote, label: 'Cash', hint: 'F9', enabled: store?.payment_cash !== false },
+                    { key: 'card' as const, icon: CreditCard, label: 'Card', hint: 'F10', enabled: !!store?.payment_card },
+                    { key: 'mobile' as const, icon: Smartphone, label: 'UPI', hint: 'F11', enabled: !!store?.payment_mobile },
                   ] as const
-                ).map(({ key, icon: Icon, label, hint }) => (
+                ).filter(m => m.enabled).map(({ key, icon: Icon, label, hint }) => (
                   <button
                     key={key}
                     onClick={() => setPaymentMethod(key)}
@@ -1549,7 +1595,9 @@ export function Sales() {
               Sale Complete
             </DialogTitle>
             <DialogDescription className="text-center">
-              Transaction processed successfully
+              {customerEmail
+                ? `Receipt emailed to ${customerEmail}`
+                : 'Transaction processed successfully'}
             </DialogDescription>
           </DialogHeader>
           {successData && (

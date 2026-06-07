@@ -176,6 +176,8 @@ export interface Sale {
   discount_total: number;
   discount_type?: 'flat' | 'percent';
   discount_reason?: string;
+  customer_name?: string;
+  customer_email?: string;
   total: number;
   payment_method: 'cash' | 'card' | 'mobile' | 'mixed';
   payment_status: 'completed' | 'pending' | 'refunded';

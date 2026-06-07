@@ -265,7 +265,7 @@ export function Products() {
       category: product.category ? String(product.category) : '',
       price: String(product.price),
       cost_price: String(product.cost_price),
-      gst_rate: product.gst_rate ?? '',
+      gst_rate: product.gst_rate ? String(parseFloat(String(product.gst_rate))) : '',
       hsn_code: product.hsn_code || '',
       is_active: product.is_active,
       image: null,

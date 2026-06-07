@@ -58,7 +58,10 @@
       "charge": "Cobrar",
       "cartEmpty": "El carrito está vacío. Agrega productos para comenzar.",
       "discount": "Descuento",
-      "discountReasonPlaceholder": "Motivo del descuento..."
+      "discountReasonPlaceholder": "Motivo del descuento...",
+      "emailReceipt": "Enviar recibo por email",
+      "customerName": "Nombre del cliente",
+      "customerEmail": "cliente@email.com"
     },
     "terminals": {
       "title": "Terminales",
