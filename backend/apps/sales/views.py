@@ -9,6 +9,7 @@ from .serializers import SaleSerializer, SaleItemSerializer, CheckoutSerializer
 from apps.accounts.models import Store, Terminal
 from apps.products.models import Product
 from apps.inventory.models import Stock, StockMovement
+from apps.inventory.broadcast import broadcast_stock_update
 
 
 class SaleViewSet(viewsets.ModelViewSet):
@@ -170,6 +171,16 @@ class SaleViewSet(viewsets.ModelViewSet):
                 terminal_obj.cash_balance += total
                 terminal_obj.save(update_fields=['cash_balance'])
 
+        # Broadcast stock changes to all terminals
+        stock_changes = []
+        for si in sale_items:
+            current_stock = Stock.objects.filter(product=si['product']).values_list('quantity', flat=True).first()
+            stock_changes.append({'product_id': si['product'].id, 'quantity': current_stock or 0})
+        try:
+            broadcast_stock_update(store.id, stock_changes)
+        except Exception:
+            pass
+
         # Send receipt email to customer (non-blocking)
         if sale.customer_email:
             from .emails import send_receipt_email_async
@@ -321,6 +332,16 @@ class SaleViewSet(viewsets.ModelViewSet):
                 sale.status = 'refunded'
                 sale.save()
 
+        # Broadcast stock changes after refund
+        refund_stock_changes = []
+        for ri in refund_item_objs:
+            current_stock = Stock.objects.filter(product=ri['product']).values_list('quantity', flat=True).first()
+            refund_stock_changes.append({'product_id': ri['product'].id, 'quantity': current_stock or 0})
+        try:
+            broadcast_stock_update(store.id, refund_stock_changes)
+        except Exception:
+            pass
+
         sale.refresh_from_db()
         return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
 
@@ -347,6 +368,16 @@ class SaleViewSet(viewsets.ModelViewSet):
                     notes=f'Voided sale #{sale.receipt_number}',
                     created_by=request.user,
                 )
+
+        # Broadcast stock changes after void
+        void_stock_changes = []
+        for item in sale.items.all():
+            current_stock = Stock.objects.filter(product=item.product).values_list('quantity', flat=True).first()
+            void_stock_changes.append({'product_id': item.product_id, 'quantity': current_stock or 0})
+        try:
+            broadcast_stock_update(sale.store_id, void_stock_changes)
+        except Exception:
+            pass
 
         return Response(SaleSerializer(sale).data)
 
@@ -474,6 +505,104 @@ class SaleViewSet(viewsets.ModelViewSet):
             'quantity': r['qty'],
         } for r in items])
 
+    @action(detail=False, methods=['get'])
+    def avg_order_trend(self, request):
+        """Average order value over last 7 days."""
+        from django.utils import timezone
+        from django.db.models import Avg, Count
+        from django.db.models.functions import TruncDate
+
+        end_date = timezone.now().date()
+        start_date = end_date - timezone.timedelta(days=6)
+        qs = self.get_queryset().filter(
+            created_at__date__gte=start_date, created_at__date__lte=end_date, status='completed'
+        ).annotate(date=TruncDate('created_at')).values('date').annotate(
+            avg=Avg('total_amount'), count=Count('id'),
+        ).order_by('date')
+
+        data = {str(r['date']): r for r in qs}
+        result = []
+        for i in range(7):
+            d = start_date + timezone.timedelta(days=i)
+            ds = str(d)
+            result.append({
+                'date': ds, 'day': d.strftime('%a'),
+                'avg': round(float(data[ds]['avg']), 2) if ds in data else 0,
+                'count': data[ds]['count'] if ds in data else 0,
+            })
+        return Response(result)
+
+    @action(detail=False, methods=['get'])
+    def cashier_performance(self, request):
+        """Sales by cashier — for leaderboard."""
+        from django.db.models import Sum, Count
+
+        qs = self.get_queryset().filter(status='completed')
+        cashiers = qs.values('cashier__first_name', 'cashier__last_name', 'cashier__username').annotate(
+            total=Sum('total_amount'), count=Count('id'),
+        ).order_by('-total')[:10]
+
+        return Response([{
+            'name': (r['cashier__first_name'] + ' ' + r['cashier__last_name']).strip() or r['cashier__username'],
+            'total': float(r['total']),
+            'transactions': r['count'],
+        } for r in cashiers])
+
+    @action(detail=False, methods=['get'])
+    def daily_comparison(self, request):
+        """Today vs yesterday comparison."""
+        from django.utils import timezone
+        from django.db.models import Sum, Count, Avg
+
+        today = timezone.now().date()
+        yesterday = today - timezone.timedelta(days=1)
+
+        def day_stats(date):
+            qs = self.get_queryset().filter(created_at__date=date, status='completed')
+            agg = qs.aggregate(
+                total=Sum('total_amount'), count=Count('id'),
+                avg=Avg('total_amount'), tax=Sum('tax_amount'),
+                discount=Sum('discount_amount'),
+            )
+            return {
+                'total': float(agg['total'] or 0),
+                'count': agg['count'] or 0,
+                'avg': round(float(agg['avg'] or 0), 2),
+                'tax': float(agg['tax'] or 0),
+                'discount': float(agg['discount'] or 0),
+            }
+
+        return Response({
+            'today': day_stats(today),
+            'yesterday': day_stats(yesterday),
+        })
+
+    @action(detail=False, methods=['get'])
+    def discount_stats(self, request):
+        """Discount analytics — total, average, by type."""
+        from django.db.models import Sum, Count, Avg
+
+        qs = self.get_queryset().filter(status='completed', discount_amount__gt=0)
+        agg = qs.aggregate(
+            total_discount=Sum('discount_amount'),
+            count=Count('id'),
+            avg_discount=Avg('discount_amount'),
+        )
+        by_type = qs.values('discount_type').annotate(
+            total=Sum('discount_amount'), count=Count('id'),
+        ).order_by('-total')
+
+        reasons = qs.exclude(discount_reason='').values('discount_reason').annotate(
+            count=Count('id'),
+        ).order_by('-count')[:5]
+
+        return Response({
+            'total': float(agg['total_discount'] or 0),
+            'count': agg['count'] or 0,
+            'avg': round(float(agg['avg_discount'] or 0), 2),
+            'by_type': [{'type': r['discount_type'], 'total': float(r['total']), 'count': r['count']} for r in by_type],
+            'top_reasons': [{'reason': r['discount_reason'], 'count': r['count']} for r in reasons],
+        })
 
     @action(detail=True, methods=['get'])
     def print_receipt(self, request, pk=None):

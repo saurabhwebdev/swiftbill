@@ -22,6 +22,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True, default='')
+    current_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -31,8 +32,17 @@ class ProductSerializer(serializers.ModelSerializer):
             'price', 'cost_price', 'image',
             'hsn_code', 'gst_rate',
             'is_active', 'created_at', 'updated_at',
+            'current_stock',
         ]
         read_only_fields = ['id', 'store', 'created_at', 'updated_at']
+
+    def get_current_stock(self, obj):
+        stock = getattr(obj, '_prefetched_stock', None)
+        if stock is None:
+            from apps.inventory.models import Stock
+            stock_obj = Stock.objects.filter(product=obj).first()
+            return stock_obj.quantity if stock_obj else 0
+        return stock
 
     def validate_image(self, value):
         if value:

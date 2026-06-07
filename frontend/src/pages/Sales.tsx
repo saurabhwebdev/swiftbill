@@ -205,6 +205,47 @@ export function Sales() {
       .catch(() => {})
   }, [])
 
+  // WebSocket for real-time stock sync between terminals
+  useEffect(() => {
+    if (!store?.id) return
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${protocol}//${window.location.host}/ws/stock/${store.id}/`
+    let ws: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+    const connect = () => {
+      ws = new WebSocket(wsUrl)
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.type === 'stock_update' && Array.isArray(data.products)) {
+            setProducts((prev) =>
+              prev.map((p) => {
+                const updated = data.products.find(
+                  (u: { product_id: number; quantity: number }) => u.product_id === p.id,
+                )
+                return updated ? { ...p, current_stock: updated.quantity } : p
+              }),
+            )
+          }
+        } catch {}
+      }
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connect, 3000)
+      }
+    }
+
+    connect()
+
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (ws) {
+        ws.onclose = null
+        ws.close()
+      }
+    }
+  }, [store?.id])
+
   // Check for active terminal on mount
   useEffect(() => {
     const checkTerminal = async () => {
@@ -1153,17 +1194,31 @@ export function Sales() {
                       ? parseFloat(product.price)
                       : product.price
                   const inCart = cart.find((c) => c.product_id === product.id)
+                  const stock = product.current_stock
+                  const outOfStock = stock !== undefined && stock <= 0
+                  const lowStock = stock !== undefined && stock > 0 && stock <= 5
+                  const cartQty = inCart?.quantity ?? 0
+                  const wouldExceed = stock !== undefined && cartQty >= stock
                   return (
                     <motion.button
                       key={product.id}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => addToCart(product)}
+                      whileTap={outOfStock || wouldExceed ? undefined : { scale: 0.96 }}
+                      onClick={() => {
+                        if (outOfStock) return
+                        if (wouldExceed) {
+                          toast({ title: `Only ${stock} in stock`, variant: 'destructive' })
+                          return
+                        }
+                        addToCart(product)
+                      }}
                       className={`relative flex flex-col rounded-xl border-2 transition-all text-left group active:scale-[0.97] ${
-                        inCart
-                          ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.04)] shadow-[0_0_0_1px_hsl(var(--primary)/0.1)]'
-                          : 'border-transparent bg-background hover:border-border hover:shadow-md'
+                        outOfStock
+                          ? 'border-transparent bg-muted/30 opacity-50 cursor-not-allowed'
+                          : inCart
+                            ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.04)] shadow-[0_0_0_1px_hsl(var(--primary)/0.1)]'
+                            : 'border-transparent bg-background hover:border-border hover:shadow-md'
                       }`}
-                      style={{ boxShadow: inCart ? undefined : '0 1px 3px hsl(var(--foreground) / 0.04)' }}
+                      style={{ boxShadow: inCart || outOfStock ? undefined : '0 1px 3px hsl(var(--foreground) / 0.04)' }}
                     >
                       {/* Product image */}
                       <div className="relative aspect-square w-full rounded-t-[10px] overflow-hidden bg-muted/30 flex items-center justify-center">
@@ -1183,6 +1238,11 @@ export function Sales() {
                             {inCart.quantity}
                           </div>
                         )}
+                        {outOfStock && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                            <span className="text-[11px] font-bold text-red-500 bg-background/90 rounded-full px-2.5 py-1">Out of Stock</span>
+                          </div>
+                        )}
                         {store?.gst_enabled && product.gst_rate && (
                           <div className="absolute bottom-1.5 left-1.5 bg-background/90 backdrop-blur-sm text-[9px] font-semibold text-muted-foreground rounded px-1.5 py-0.5">
                             GST {product.gst_rate}%
@@ -1194,9 +1254,20 @@ export function Sales() {
                         <span className="text-[12px] font-medium text-foreground leading-tight line-clamp-1 block">
                           {product.name}
                         </span>
-                        <span className="text-[16px] font-bold text-foreground mt-0.5 block">
-                          {formatPrice(price)}
-                        </span>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-[16px] font-bold text-foreground">
+                            {formatPrice(price)}
+                          </span>
+                          {stock !== undefined && !outOfStock && (
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              lowStock
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                                : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                            }`}>
+                              {stock}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </motion.button>
                   )
